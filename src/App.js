@@ -38,39 +38,30 @@ export default function LOBGame() {
   const [round, setRound] = useState(0);
   const [name, setName] = useState('');
   
-  // R1: Student inputs for schedule
+  // R1: Student inputs (free input - no fixed answer)
   const [r1Input, setR1Input] = useState({
     excDur: '', excS: '', excE: '',
     pipeDur: '', pipeS: '', pipeE: '',
     backDur: '', backS: '', backE: '',
   });
-  const [r1Submitted, setR1Submitted] = useState(false);
   
-  // R2: Student inputs for LOB schedule
+  // R2: Student inputs for revised schedule with buffer
   const [r2Input, setR2Input] = useState({
     excS: '', excE: '',
     pipeS: '', pipeE: '',
     backS: '', backE: '',
   });
-  const [r2Submitted, setR2Submitted] = useState(false);
   
-  // R2: Student inputs for budget
+  // R2 Budget inputs
   const [r2Budget, setR2Budget] = useState({
     excCost: '', pipeCost: '', backCost: '', direct: '',
     indirect: '', profit: '', total: '',
   });
-  const [r2BudgetSubmitted, setR2BudgetSubmitted] = useState(false);
   
-  // R3 buffer and student inputs
+  // R3 buffer
   const [r3Buffer, setR3Buffer] = useState(5);
-  const [r3Input, setR3Input] = useState({
-    excDur: '', excS: '', excE: '',
-    pipeDur: '', pipeS: '', pipeE: '',
-    backDur: '', backS: '', backE: '',
-  });
-  const [r3Submitted, setR3Submitted] = useState(false);
   
-  // R4: Single equipment type selection
+  // R4: Equipment selection
   const [r4Eq, setR4Eq] = useState({ exc: 1, pipe: 0, back: 1 });
   
   // R5: Multiple equipment
@@ -81,54 +72,49 @@ export default function LOBGame() {
   });
   const [r5Buffer, setR5Buffer] = useState(5);
   
+  // Results storage for summary
   const [results, setResults] = useState({});
 
-  // Correct answers
+  // Correct durations (calculated)
   const dur = useMemo(() => ({
     exc: Math.ceil(PROJECT_LENGTH / CREWS.exc.rate),
     pipe: Math.ceil(PROJECT_LENGTH / CREWS.pipe.rate),
     back: Math.ceil(PROJECT_LENGTH / CREWS.back.rate),
   }), []);
 
-  // R1 correct schedule
-  const r1Correct = useMemo(() => {
-    const excS = MOB_DAYS + 1, excE = excS + dur.exc - 1;
-    const pipeS = excS + 2, pipeE = pipeS + dur.pipe - 1;
-    const backS = pipeS + 2, backE = backS + dur.back - 1;
-    return { excS, excE, pipeS, pipeE, backS, backE, end: Math.max(excE, pipeE, backE) };
-  }, [dur]);
-
-  // R1 student schedule (for chart)
+  // R1 Student schedule (from their inputs)
   const r1Student = useMemo(() => {
-    const excS = parseInt(r1Input.excS) || MOB_DAYS + 1;
-    const excE = parseInt(r1Input.excE) || excS + dur.exc - 1;
-    const pipeS = parseInt(r1Input.pipeS) || excS + 2;
-    const pipeE = parseInt(r1Input.pipeE) || pipeS + dur.pipe - 1;
-    const backS = parseInt(r1Input.backS) || pipeS + 2;
-    const backE = parseInt(r1Input.backE) || backS + dur.back - 1;
-    return { excS, excE, pipeS, pipeE, backS, backE, end: Math.max(excE, pipeE, backE) };
-  }, [r1Input, dur]);
+    const excS = parseInt(r1Input.excS) || 0;
+    const excE = parseInt(r1Input.excE) || 0;
+    const pipeS = parseInt(r1Input.pipeS) || 0;
+    const pipeE = parseInt(r1Input.pipeE) || 0;
+    const backS = parseInt(r1Input.backS) || 0;
+    const backE = parseInt(r1Input.backE) || 0;
+    return { 
+      excS, excE, 
+      pipeS, pipeE, 
+      backS, backE, 
+      end: Math.max(excE, pipeE, backE) 
+    };
+  }, [r1Input]);
 
-  // R2 correct schedule (LOB with buffer)
-  const r2Correct = useMemo(() => {
-    const excS = MOB_DAYS + 1, excE = excS + dur.exc - 1;
-    const pipeS = excS + DEFAULT_BUFFER, pipeE = pipeS + dur.pipe - 1;
-    const backS = pipeE + DEFAULT_BUFFER - dur.back + 1, backE = backS + dur.back - 1;
-    return { excS, excE, pipeS, pipeE, backS, backE, end: Math.max(excE, pipeE, backE) };
-  }, [dur]);
-
-  // R2 student schedule (for chart)
+  // R2 Student schedule (from their revised inputs)
   const r2Student = useMemo(() => {
-    const excS = parseInt(r2Input.excS) || r2Correct.excS;
-    const excE = parseInt(r2Input.excE) || r2Correct.excE;
-    const pipeS = parseInt(r2Input.pipeS) || r2Correct.pipeS;
-    const pipeE = parseInt(r2Input.pipeE) || r2Correct.pipeE;
-    const backS = parseInt(r2Input.backS) || r2Correct.backS;
-    const backE = parseInt(r2Input.backE) || r2Correct.backE;
-    return { excS, excE, pipeS, pipeE, backS, backE, end: Math.max(excE, pipeE, backE) };
-  }, [r2Input, r2Correct]);
+    const excS = parseInt(r2Input.excS) || 0;
+    const excE = parseInt(r2Input.excE) || 0;
+    const pipeS = parseInt(r2Input.pipeS) || 0;
+    const pipeE = parseInt(r2Input.pipeE) || 0;
+    const backS = parseInt(r2Input.backS) || 0;
+    const backE = parseInt(r2Input.backE) || 0;
+    return { 
+      excS, excE, 
+      pipeS, pipeE, 
+      backS, backE, 
+      end: Math.max(excE, pipeE, backE) 
+    };
+  }, [r2Input]);
 
-  // R2 correct budget
+  // R2 correct budget (based on durations)
   const r2CostCorrect = useMemo(() => {
     const excC = dur.exc * CREWS.exc.cost;
     const pipeC = dur.pipe * CREWS.pipe.cost;
@@ -140,46 +126,36 @@ export default function LOBGame() {
     return { direct, indirect, subtotal, profit, total: subtotal + profit, excC, pipeC, backC };
   }, [dur]);
 
-  // R3 correct schedule
-  const r3Correct = useMemo(() => {
-    const excS = MOB_DAYS + 1, excE = excS + dur.exc - 1;
-    const pipeS = excS + r3Buffer, pipeE = pipeS + dur.pipe - 1;
-    const backS = pipeE + r3Buffer - dur.back + 1, backE = backS + dur.back - 1;
+  // R3 schedule (based on R2 inputs + variable buffer)
+  const r3 = useMemo(() => {
+    // Use R2 excavation start as base, recalculate with new buffer
+    const excS = parseInt(r2Input.excS) || (MOB_DAYS + 1);
+    const excE = excS + dur.exc - 1;
+    const pipeS = excS + r3Buffer;
+    const pipeE = pipeS + dur.pipe - 1;
+    const backS = pipeE + r3Buffer - dur.back + 1;
+    const backE = backS + dur.back - 1;
     return { 
       excS, excE, excDur: dur.exc,
       pipeS, pipeE, pipeDur: dur.pipe,
       backS, backE, backDur: dur.back,
       end: Math.max(excE, pipeE, backE) 
     };
-  }, [dur, r3Buffer]);
-
-  // R3 student schedule
-  const r3Student = useMemo(() => {
-    const excS = parseInt(r3Input.excS) || r3Correct.excS;
-    const excE = parseInt(r3Input.excE) || r3Correct.excE;
-    const pipeS = parseInt(r3Input.pipeS) || r3Correct.pipeS;
-    const pipeE = parseInt(r3Input.pipeE) || r3Correct.pipeE;
-    const backS = parseInt(r3Input.backS) || r3Correct.backS;
-    const backE = parseInt(r3Input.backE) || r3Correct.backE;
-    return { excS, excE, pipeS, pipeE, backS, backE, end: Math.max(excE, pipeE, backE) };
-  }, [r3Input, r3Correct]);
+  }, [dur, r3Buffer, r2Input]);
 
   // R4 schedule
   const r4 = useMemo(() => {
     const exc = EQUIPMENT.exc[r4Eq.exc];
     const pipe = EQUIPMENT.pipe[r4Eq.pipe];
     const back = EQUIPMENT.back[r4Eq.back];
-    
     const excDur = Math.ceil(PROJECT_LENGTH / exc.rate);
     const pipeDur = Math.ceil(PROJECT_LENGTH / pipe.rate);
     const backDur = Math.ceil(PROJECT_LENGTH / back.rate);
-    
     const excS = MOB_DAYS + 1, excE = excS + excDur - 1;
     let pipeS = pipe.rate < exc.rate ? excS + DEFAULT_BUFFER : excE + DEFAULT_BUFFER - pipeDur + 1;
     const pipeE = pipeS + pipeDur - 1;
     let backS = back.rate < pipe.rate ? pipeS + DEFAULT_BUFFER : pipeE + DEFAULT_BUFFER - backDur + 1;
     const backE = backS + backDur - 1;
-    
     return {
       excS, excE, excDur, excRate: exc.rate, excCost: exc.cost, excName: exc.name,
       pipeS, pipeE, pipeDur, pipeRate: pipe.rate, pipeCost: pipe.cost, pipeName: pipe.name,
@@ -190,28 +166,15 @@ export default function LOBGame() {
 
   // R5 calculations
   const r5Calc = useMemo(() => {
-    const excRate = r5Config.exc.small * EQUIPMENT.exc[0].rate + 
-                    r5Config.exc.standard * EQUIPMENT.exc[1].rate + 
-                    r5Config.exc.large * EQUIPMENT.exc[2].rate || 1;
-    const excCost = r5Config.exc.small * EQUIPMENT.exc[0].cost + 
-                    r5Config.exc.standard * EQUIPMENT.exc[1].cost + 
-                    r5Config.exc.large * EQUIPMENT.exc[2].cost;
+    const excRate = r5Config.exc.small * EQUIPMENT.exc[0].rate + r5Config.exc.standard * EQUIPMENT.exc[1].rate + r5Config.exc.large * EQUIPMENT.exc[2].rate || 1;
+    const excCost = r5Config.exc.small * EQUIPMENT.exc[0].cost + r5Config.exc.standard * EQUIPMENT.exc[1].cost + r5Config.exc.large * EQUIPMENT.exc[2].cost;
     const excCount = r5Config.exc.small + r5Config.exc.standard + r5Config.exc.large;
-
-    const pipeRate = r5Config.pipe.standard * EQUIPMENT.pipe[0].rate + 
-                     r5Config.pipe.heavy * EQUIPMENT.pipe[1].rate || 1;
-    const pipeCost = r5Config.pipe.standard * EQUIPMENT.pipe[0].cost + 
-                     r5Config.pipe.heavy * EQUIPMENT.pipe[1].cost;
+    const pipeRate = r5Config.pipe.standard * EQUIPMENT.pipe[0].rate + r5Config.pipe.heavy * EQUIPMENT.pipe[1].rate || 1;
+    const pipeCost = r5Config.pipe.standard * EQUIPMENT.pipe[0].cost + r5Config.pipe.heavy * EQUIPMENT.pipe[1].cost;
     const pipeCount = r5Config.pipe.standard + r5Config.pipe.heavy;
-
-    const backRate = r5Config.back.small * EQUIPMENT.back[0].rate + 
-                     r5Config.back.standard * EQUIPMENT.back[1].rate + 
-                     r5Config.back.large * EQUIPMENT.back[2].rate || 1;
-    const backCost = r5Config.back.small * EQUIPMENT.back[0].cost + 
-                     r5Config.back.standard * EQUIPMENT.back[1].cost + 
-                     r5Config.back.large * EQUIPMENT.back[2].cost;
+    const backRate = r5Config.back.small * EQUIPMENT.back[0].rate + r5Config.back.standard * EQUIPMENT.back[1].rate + r5Config.back.large * EQUIPMENT.back[2].rate || 1;
+    const backCost = r5Config.back.small * EQUIPMENT.back[0].cost + r5Config.back.standard * EQUIPMENT.back[1].cost + r5Config.back.large * EQUIPMENT.back[2].cost;
     const backCount = r5Config.back.small + r5Config.back.standard + r5Config.back.large;
-
     return {
       exc: { rate: excRate, cost: excCost, count: excCount },
       pipe: { rate: pipeRate, cost: pipeCost, count: pipeCount },
@@ -223,13 +186,11 @@ export default function LOBGame() {
     const excDur = Math.ceil(PROJECT_LENGTH / r5Calc.exc.rate);
     const pipeDur = Math.ceil(PROJECT_LENGTH / r5Calc.pipe.rate);
     const backDur = Math.ceil(PROJECT_LENGTH / r5Calc.back.rate);
-    
     const excS = MOB_DAYS + 1, excE = excS + excDur - 1;
     let pipeS = r5Calc.pipe.rate < r5Calc.exc.rate ? excS + r5Buffer : excE + r5Buffer - pipeDur + 1;
     const pipeE = pipeS + pipeDur - 1;
     let backS = r5Calc.back.rate < r5Calc.pipe.rate ? pipeS + r5Buffer : pipeE + r5Buffer - backDur + 1;
     const backE = backS + backDur - 1;
-    
     return {
       excS, excE, excDur, excRate: r5Calc.exc.rate, excCost: r5Calc.exc.cost,
       pipeS, pipeE, pipeDur, pipeRate: r5Calc.pipe.rate, pipeCost: r5Calc.pipe.cost,
@@ -255,13 +216,13 @@ export default function LOBGame() {
   // LOB data generator
   const genLOB = (schedules) => {
     const data = [];
-    let maxDay = Math.max(...schedules.map(s => s.end || 0)) + 10;
+    let maxDay = Math.max(...schedules.map(s => s.end || 0), 100) + 10;
     for (let d = 0; d <= maxDay; d += 2) {
       const pt = { day: d };
       schedules.forEach((s, i) => {
         ['exc', 'pipe', 'back'].forEach(type => {
           const start = s[`${type}S`], end = s[`${type}E`];
-          if (start && end) {
+          if (start && end && start > 0 && end > 0) {
             if (d >= start && d <= end) pt[`${type}${i}`] = ((d - start) / (end - start)) * PROJECT_LENGTH;
             else if (d > end) pt[`${type}${i}`] = PROJECT_LENGTH;
             else pt[`${type}${i}`] = 0;
@@ -273,32 +234,33 @@ export default function LOBGame() {
     return data;
   };
 
-  // Check R1 answers
-  const checkR1 = () => {
-    setR1Submitted(true);
-  };
-
-  // Check R2 schedule answers
-  const checkR2Schedule = () => {
-    setR2Submitted(true);
-  };
-
-  // Check R2 budget answers
-  const checkR2Budget = () => {
-    setR2BudgetSubmitted(true);
-  };
-
-  // Check R3 answers
-  const checkR3 = () => {
-    setR3Submitted(true);
-  };
-
   const nextRound = () => {
     const res = { round };
-    if (round === 1) { res.end = r1Student.end; }
-    if (round === 2) { res.end = r2Student.end; res.cost = r2CostCorrect.total; }
-    if (round === 3) { res.end = r3Student.end; res.cost = r2CostCorrect.total; res.buffer = r3Buffer; }
-    if (round === 4) { res.end = r4.end; res.cost = r4Cost.total; }
+    if (round === 1) { 
+      res.excS = r1Student.excS; res.excE = r1Student.excE;
+      res.pipeS = r1Student.pipeS; res.pipeE = r1Student.pipeE;
+      res.backS = r1Student.backS; res.backE = r1Student.backE;
+      res.end = r1Student.end; 
+    }
+    if (round === 2) { 
+      res.excS = r2Student.excS; res.excE = r2Student.excE;
+      res.pipeS = r2Student.pipeS; res.pipeE = r2Student.pipeE;
+      res.backS = r2Student.backS; res.backE = r2Student.backE;
+      res.end = r2Student.end; 
+      res.cost = r2CostCorrect.total; 
+    }
+    if (round === 3) { 
+      res.buffer = r3Buffer;
+      res.excS = r3.excS; res.excE = r3.excE;
+      res.pipeS = r3.pipeS; res.pipeE = r3.pipeE;
+      res.backS = r3.backS; res.backE = r3.backE;
+      res.end = r3.end; 
+      res.cost = r2CostCorrect.total; 
+    }
+    if (round === 4) { 
+      res.end = r4.end; 
+      res.cost = r4Cost.total; 
+    }
     if (round === 5) { 
       res.end = r5.end; 
       res.cost = r5Cost.total; 
@@ -307,29 +269,17 @@ export default function LOBGame() {
     }
     setResults(p => ({ ...p, [round]: res }));
     setRound(round + 1);
-    // Reset states for next round
-    if (round === 1) { setR1Submitted(false); }
-    if (round === 2) { setR2Submitted(false); setR2BudgetSubmitted(false); }
-    if (round === 3) { setR3Submitted(false); }
   };
 
   // Input field component
-  const InputCell = ({ value, onChange, correct, submitted, width = "w-16" }) => {
-    const isCorrect = submitted && parseInt(value) === correct;
-    const isWrong = submitted && value !== '' && parseInt(value) !== correct;
-    return (
-      <input
-        type="number"
-        value={value}
-        onChange={onChange}
-        className={`${width} px-1 py-1 border rounded text-center text-sm
-          ${isCorrect ? 'bg-green-100 border-green-500' : ''}
-          ${isWrong ? 'bg-red-100 border-red-500' : ''}
-          ${!submitted ? 'bg-yellow-50 border-yellow-400' : ''}`}
-        disabled={submitted}
-      />
-    );
-  };
+  const InputCell = ({ value, onChange, width = "w-16" }) => (
+    <input
+      type="number"
+      value={value}
+      onChange={onChange}
+      className={`${width} px-1 py-1 border rounded text-center text-sm bg-yellow-50 border-yellow-400 focus:border-blue-500 focus:outline-none`}
+    />
+  );
 
   // ========== INTRO SCREEN ==========
   if (round === 0) {
@@ -443,7 +393,7 @@ export default function LOBGame() {
     const pass = results[5]?.pass;
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 p-4">
-        <div className="max-w-3xl mx-auto bg-white rounded-xl p-6">
+        <div className="max-w-4xl mx-auto bg-white rounded-xl p-6">
           <div className="text-center mb-6">
             <div className="text-6xl">{pass ? '🏆' : '📊'}</div>
             <h1 className="text-3xl font-bold text-blue-900">Game Complete!</h1>
@@ -451,33 +401,108 @@ export default function LOBGame() {
           </div>
 
           <div className={`p-4 rounded-lg mb-6 ${pass ? 'bg-green-100 border-2 border-green-500' : 'bg-yellow-100 border-2 border-yellow-500'}`}>
-            <h3 className="font-bold">{pass ? '✅ Owner Constraints Met!' : '⚠️ Constraints Not Met'}</h3>
+            <h3 className="font-bold text-lg">{pass ? '✅ Owner Constraints Met!' : '⚠️ Constraints Not Met'}</h3>
             <div className="grid grid-cols-2 gap-4 mt-2">
               <div>
-                <span className="text-gray-600">Duration: </span>
+                <span className="text-gray-600">Final Duration: </span>
                 <span className={`font-bold ${results[5]?.end <= TARGET_DAYS ? 'text-green-600' : 'text-red-600'}`}>
                   {results[5]?.end} days
                 </span>
-                <span className="text-gray-400 text-sm"> (≤{TARGET_DAYS})</span>
+                <span className="text-gray-400 text-sm"> (Target: ≤{TARGET_DAYS})</span>
               </div>
               <div>
-                <span className="text-gray-600">Cost: </span>
+                <span className="text-gray-600">Final Cost: </span>
                 <span className={`font-bold ${results[5]?.cost <= TARGET_COST ? 'text-green-600' : 'text-red-600'}`}>
                   ${results[5]?.cost?.toLocaleString()}
                 </span>
-                <span className="text-gray-400 text-sm"> (≤${TARGET_COST.toLocaleString()})</span>
+                <span className="text-gray-400 text-sm"> (Target: ≤${TARGET_COST.toLocaleString()})</span>
               </div>
             </div>
+          </div>
+
+          {/* Round 1 Summary */}
+          <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+            <h3 className="font-bold text-blue-800 mb-2">📊 Round 1: Gantt Chart</h3>
+            <table className="w-full text-sm">
+              <thead className="bg-blue-100">
+                <tr>
+                  <th className="px-2 py-1 text-left">Activity</th>
+                  <th className="px-2 py-1 text-center">Start</th>
+                  <th className="px-2 py-1 text-center">End</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td className="px-2 py-1">Excavation</td><td className="px-2 py-1 text-center">{results[1]?.excS || '-'}</td><td className="px-2 py-1 text-center">{results[1]?.excE || '-'}</td></tr>
+                <tr><td className="px-2 py-1">Pipe Laying</td><td className="px-2 py-1 text-center">{results[1]?.pipeS || '-'}</td><td className="px-2 py-1 text-center">{results[1]?.pipeE || '-'}</td></tr>
+                <tr><td className="px-2 py-1">Backfill</td><td className="px-2 py-1 text-center">{results[1]?.backS || '-'}</td><td className="px-2 py-1 text-center">{results[1]?.backE || '-'}</td></tr>
+              </tbody>
+            </table>
+            <p className="mt-2 text-sm">Project End: <strong>{results[1]?.end || '-'} days</strong></p>
+          </div>
+
+          {/* Round 2 Summary */}
+          <div className="mb-4 p-4 bg-yellow-50 rounded-lg">
+            <h3 className="font-bold text-yellow-800 mb-2">📈 Round 2: LOB Analysis (Buffer = {DEFAULT_BUFFER} days)</h3>
+            <table className="w-full text-sm">
+              <thead className="bg-yellow-100">
+                <tr>
+                  <th className="px-2 py-1 text-left">Activity</th>
+                  <th className="px-2 py-1 text-center">Start</th>
+                  <th className="px-2 py-1 text-center">End</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td className="px-2 py-1">Excavation</td><td className="px-2 py-1 text-center">{results[2]?.excS || '-'}</td><td className="px-2 py-1 text-center">{results[2]?.excE || '-'}</td></tr>
+                <tr><td className="px-2 py-1">Pipe Laying</td><td className="px-2 py-1 text-center">{results[2]?.pipeS || '-'}</td><td className="px-2 py-1 text-center">{results[2]?.pipeE || '-'}</td></tr>
+                <tr><td className="px-2 py-1">Backfill</td><td className="px-2 py-1 text-center">{results[2]?.backS || '-'}</td><td className="px-2 py-1 text-center">{results[2]?.backE || '-'}</td></tr>
+              </tbody>
+            </table>
+            <p className="mt-2 text-sm">Project End: <strong>{results[2]?.end || '-'} days</strong> | Cost: <strong>${results[2]?.cost?.toLocaleString() || '-'}</strong></p>
+          </div>
+
+          {/* Round 3 Summary */}
+          <div className="mb-4 p-4 bg-green-50 rounded-lg">
+            <h3 className="font-bold text-green-800 mb-2">🔄 Round 3: Buffer Analysis (Buffer = {results[3]?.buffer || DEFAULT_BUFFER} days)</h3>
+            <table className="w-full text-sm">
+              <thead className="bg-green-100">
+                <tr>
+                  <th className="px-2 py-1 text-left">Activity</th>
+                  <th className="px-2 py-1 text-center">Start</th>
+                  <th className="px-2 py-1 text-center">End</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td className="px-2 py-1">Excavation</td><td className="px-2 py-1 text-center">{results[3]?.excS || '-'}</td><td className="px-2 py-1 text-center">{results[3]?.excE || '-'}</td></tr>
+                <tr><td className="px-2 py-1">Pipe Laying</td><td className="px-2 py-1 text-center">{results[3]?.pipeS || '-'}</td><td className="px-2 py-1 text-center">{results[3]?.pipeE || '-'}</td></tr>
+                <tr><td className="px-2 py-1">Backfill</td><td className="px-2 py-1 text-center">{results[3]?.backS || '-'}</td><td className="px-2 py-1 text-center">{results[3]?.backE || '-'}</td></tr>
+              </tbody>
+            </table>
+            <p className="mt-2 text-sm">Project End: <strong>{results[3]?.end || '-'} days</strong></p>
+          </div>
+
+          {/* Round 4 Summary */}
+          <div className="mb-4 p-4 bg-orange-50 rounded-lg">
+            <h3 className="font-bold text-orange-800 mb-2">🚜 Round 4: Rate Analysis</h3>
+            <p className="text-sm">Project End: <strong>{results[4]?.end || '-'} days</strong> | Cost: <strong>${results[4]?.cost?.toLocaleString() || '-'}</strong></p>
+          </div>
+
+          {/* Round 5 Summary */}
+          <div className="mb-4 p-4 bg-purple-50 rounded-lg">
+            <h3 className="font-bold text-purple-800 mb-2">🎯 Round 5: Optimization (Buffer = {results[5]?.buffer} days)</h3>
+            <p className="text-sm">
+              Project End: <strong className={results[5]?.end <= TARGET_DAYS ? 'text-green-600' : 'text-red-600'}>{results[5]?.end} days</strong> | 
+              Cost: <strong className={results[5]?.cost <= TARGET_COST ? 'text-green-600' : 'text-red-600'}>${results[5]?.cost?.toLocaleString()}</strong>
+            </p>
           </div>
 
           <div className="bg-blue-50 p-4 rounded mb-4">
             <h3 className="font-bold mb-2">🎓 Key Learnings</h3>
             <ul className="text-sm space-y-1">
-              <li>• <strong>R1:</strong> Gantt charts can hide spatial conflicts</li>
-              <li>• <strong>R2:</strong> LOB reveals when faster crews catch slower ones</li>
-              <li>• <strong>R3:</strong> Buffer ↑ = Duration ↑ (Cost unchanged)</li>
-              <li>• <strong>R4:</strong> Equipment type affects rate and cost</li>
-              <li>• <strong>R5:</strong> Multiple equipment units multiply rate AND cost</li>
+              <li>• <strong>R1:</strong> Gantt charts show schedule but can hide spatial conflicts</li>
+              <li>• <strong>R2:</strong> LOB reveals when faster crews catch slower ones - use buffers!</li>
+              <li>• <strong>R3:</strong> Buffer ↑ = Duration ↑ (but Cost stays the same)</li>
+              <li>• <strong>R4:</strong> Equipment type affects both rate and cost per day</li>
+              <li>• <strong>R5:</strong> Multiple equipment units multiply rate AND cost - optimize!</li>
             </ul>
           </div>
 
@@ -512,14 +537,31 @@ export default function LOBGame() {
 
       <div className="max-w-5xl mx-auto p-4 space-y-4">
         
-        {/* ===== ROUND 1: Student Input Gantt Chart ===== */}
+        {/* ===== ROUND 1: Free Input Gantt Chart ===== */}
         {round === 1 && (
           <>
             <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
               <h3 className="font-bold">📋 Task: Create a schedule using <strong>Gantt Chart</strong></h3>
-              <p className="text-sm text-gray-600">Calculate Duration, then determine Start and End dates</p>
-              <p className="text-sm text-gray-600">Formula: Duration = {PROJECT_LENGTH.toLocaleString()} ft ÷ Rate (round up)</p>
-              <p className="text-sm text-gray-600">Use 2-day buffer between activity starts</p>
+              <p className="text-sm text-gray-600 mt-2">
+                <strong>Step 1:</strong> Calculate Duration for each activity<br/>
+                <strong>Step 2:</strong> Define Start day (you choose!)<br/>
+                <strong>Step 3:</strong> Calculate End day using the formula
+              </p>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-4">
+              <h3 className="font-bold mb-2">📐 Formulas</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="bg-blue-50 p-3 rounded">
+                  <strong>Duration:</strong><br/>
+                  Duration = ⌈{PROJECT_LENGTH.toLocaleString()} ft ÷ Rate⌉<br/>
+                  <span className="text-xs text-gray-500">(round up to nearest whole number)</span>
+                </div>
+                <div className="bg-green-50 p-3 rounded">
+                  <strong>End Day:</strong><br/>
+                  End = Start + Duration - 1
+                </div>
+              </div>
             </div>
 
             <div className="bg-white rounded-lg shadow p-4">
@@ -529,9 +571,9 @@ export default function LOBGame() {
                   <tr>
                     <th className="px-2 py-2 border">Phase</th>
                     <th className="px-2 py-2 border">Rate (ft/day)</th>
-                    <th className="px-2 py-2 border">Duration (days)</th>
-                    <th className="px-2 py-2 border">Start (day)</th>
-                    <th className="px-2 py-2 border">End (day)</th>
+                    <th className="px-2 py-2 border bg-yellow-50">Duration (days)</th>
+                    <th className="px-2 py-2 border bg-yellow-50">Start (day)</th>
+                    <th className="px-2 py-2 border bg-yellow-50">End (day)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -546,143 +588,94 @@ export default function LOBGame() {
                     <td className="px-2 py-2 border text-blue-700 font-medium">Excavation (A)</td>
                     <td className="px-2 py-2 border text-center">{CREWS.exc.rate}</td>
                     <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r1Input.excDur} 
-                        onChange={(e) => setR1Input({...r1Input, excDur: e.target.value})}
-                        correct={dur.exc}
-                        submitted={r1Submitted}
-                      />
+                      <InputCell value={r1Input.excDur} onChange={(e) => setR1Input({...r1Input, excDur: e.target.value})} />
                     </td>
                     <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r1Input.excS} 
-                        onChange={(e) => setR1Input({...r1Input, excS: e.target.value})}
-                        correct={r1Correct.excS}
-                        submitted={r1Submitted}
-                      />
+                      <InputCell value={r1Input.excS} onChange={(e) => setR1Input({...r1Input, excS: e.target.value})} />
                     </td>
                     <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r1Input.excE} 
-                        onChange={(e) => setR1Input({...r1Input, excE: e.target.value})}
-                        correct={r1Correct.excE}
-                        submitted={r1Submitted}
-                      />
+                      <InputCell value={r1Input.excE} onChange={(e) => setR1Input({...r1Input, excE: e.target.value})} />
                     </td>
                   </tr>
                   <tr>
                     <td className="px-2 py-2 border text-green-700 font-medium">Pipe Laying (B)</td>
                     <td className="px-2 py-2 border text-center">{CREWS.pipe.rate}</td>
                     <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r1Input.pipeDur} 
-                        onChange={(e) => setR1Input({...r1Input, pipeDur: e.target.value})}
-                        correct={dur.pipe}
-                        submitted={r1Submitted}
-                      />
+                      <InputCell value={r1Input.pipeDur} onChange={(e) => setR1Input({...r1Input, pipeDur: e.target.value})} />
                     </td>
                     <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r1Input.pipeS} 
-                        onChange={(e) => setR1Input({...r1Input, pipeS: e.target.value})}
-                        correct={r1Correct.pipeS}
-                        submitted={r1Submitted}
-                      />
+                      <InputCell value={r1Input.pipeS} onChange={(e) => setR1Input({...r1Input, pipeS: e.target.value})} />
                     </td>
                     <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r1Input.pipeE} 
-                        onChange={(e) => setR1Input({...r1Input, pipeE: e.target.value})}
-                        correct={r1Correct.pipeE}
-                        submitted={r1Submitted}
-                      />
+                      <InputCell value={r1Input.pipeE} onChange={(e) => setR1Input({...r1Input, pipeE: e.target.value})} />
                     </td>
                   </tr>
                   <tr>
                     <td className="px-2 py-2 border text-orange-700 font-medium">Backfill (C)</td>
                     <td className="px-2 py-2 border text-center">{CREWS.back.rate}</td>
                     <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r1Input.backDur} 
-                        onChange={(e) => setR1Input({...r1Input, backDur: e.target.value})}
-                        correct={dur.back}
-                        submitted={r1Submitted}
-                      />
+                      <InputCell value={r1Input.backDur} onChange={(e) => setR1Input({...r1Input, backDur: e.target.value})} />
                     </td>
                     <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r1Input.backS} 
-                        onChange={(e) => setR1Input({...r1Input, backS: e.target.value})}
-                        correct={r1Correct.backS}
-                        submitted={r1Submitted}
-                      />
+                      <InputCell value={r1Input.backS} onChange={(e) => setR1Input({...r1Input, backS: e.target.value})} />
                     </td>
                     <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r1Input.backE} 
-                        onChange={(e) => setR1Input({...r1Input, backE: e.target.value})}
-                        correct={r1Correct.backE}
-                        submitted={r1Submitted}
-                      />
+                      <InputCell value={r1Input.backE} onChange={(e) => setR1Input({...r1Input, backE: e.target.value})} />
                     </td>
                   </tr>
                 </tbody>
               </table>
-              
-              {!r1Submitted && (
-                <button onClick={checkR1} className="mt-4 bg-blue-600 text-white px-6 py-2 rounded font-bold">
-                  ✓ Check Answers
-                </button>
-              )}
-              
-              {r1Submitted && (
-                <div className="mt-4 p-3 bg-blue-50 rounded">
-                  <p className="font-bold">Correct Answers:</p>
-                  <p className="text-sm">Excavation: Duration={dur.exc}, Start={r1Correct.excS}, End={r1Correct.excE}</p>
-                  <p className="text-sm">Pipe Laying: Duration={dur.pipe}, Start={r1Correct.pipeS}, End={r1Correct.pipeE}</p>
-                  <p className="text-sm">Backfill: Duration={dur.back}, Start={r1Correct.backS}, End={r1Correct.backE}</p>
-                  <p className="font-bold mt-2">Project End: {r1Correct.end} days</p>
+              {r1Student.end > 0 && (
+                <div className="mt-3 text-center text-lg">
+                  Project End: <strong className="text-blue-600 text-2xl">{r1Student.end} days</strong>
                 </div>
               )}
             </div>
 
-            {/* Gantt Chart based on student input */}
-            <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="font-bold mb-3">📊 Gantt Chart (Based on Your Input)</h3>
-              <div className="mb-2 text-xs text-gray-500 text-center">Duration (day)</div>
-              <div className="relative">
-                <div className="absolute -left-1 top-0 bottom-0 w-20 flex flex-col justify-around text-xs text-gray-500">
-                  <span>Activity</span>
-                </div>
-                <div className="ml-16 space-y-2">
-                  {[
-                    { name: 'Mobilization', s: 1, e: MOB_DAYS, c: 'bg-gray-400' },
-                    { name: 'Excavation', s: parseInt(r1Input.excS) || 0, e: parseInt(r1Input.excE) || 0, c: 'bg-blue-500' },
-                    { name: 'Pipe Laying', s: parseInt(r1Input.pipeS) || 0, e: parseInt(r1Input.pipeE) || 0, c: 'bg-green-500' },
-                    { name: 'Backfill', s: parseInt(r1Input.backS) || 0, e: parseInt(r1Input.backE) || 0, c: 'bg-orange-500' },
-                  ].map((bar, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <div className="w-20 text-xs text-right pr-2">{bar.name}</div>
-                      <div className="flex-1 h-6 bg-gray-100 rounded relative">
-                        {bar.s > 0 && bar.e > 0 && (
-                          <div
-                            className={`absolute h-full ${bar.c} rounded text-white text-xs flex items-center justify-center`}
-                            style={{ left: `${(bar.s / 120) * 100}%`, width: `${Math.max(((bar.e - bar.s + 1) / 120) * 100, 2)}%` }}
-                          >
-                            {bar.s}-{bar.e}
-                          </div>
-                        )}
+            {/* Gantt Chart */}
+            {(r1Student.excS > 0 || r1Student.pipeS > 0 || r1Student.backS > 0) && (
+              <div className="bg-white rounded-lg shadow p-4">
+                <h3 className="font-bold mb-3">📊 Gantt Chart (Based on Your Input)</h3>
+                <div className="relative">
+                  <div className="flex">
+                    <div className="w-24 text-xs text-gray-500 text-right pr-2 flex items-center justify-end">Activity</div>
+                    <div className="flex-1 text-center text-xs text-gray-500 mb-1">Duration (day)</div>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { name: 'Mobilization', s: 1, e: MOB_DAYS, c: 'bg-gray-400' },
+                      { name: 'Excavation', s: r1Student.excS, e: r1Student.excE, c: 'bg-blue-500' },
+                      { name: 'Pipe Laying', s: r1Student.pipeS, e: r1Student.pipeE, c: 'bg-green-500' },
+                      { name: 'Backfill', s: r1Student.backS, e: r1Student.backE, c: 'bg-orange-500' },
+                    ].map((bar, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <div className="w-24 text-xs text-right pr-2">{bar.name}</div>
+                        <div className="flex-1 h-6 bg-gray-100 rounded relative">
+                          {bar.s > 0 && bar.e > 0 && bar.e >= bar.s && (
+                            <div
+                              className={`absolute h-full ${bar.c} rounded text-white text-xs flex items-center justify-center`}
+                              style={{ left: `${(bar.s / 150) * 100}%`, width: `${Math.max(((bar.e - bar.s + 1) / 150) * 100, 3)}%` }}
+                            >
+                              {bar.s}-{bar.e}
+                            </div>
+                          )}
+                        </div>
                       </div>
+                    ))}
+                  </div>
+                  {/* X-axis labels */}
+                  <div className="flex ml-24 mt-1">
+                    <div className="flex-1 flex justify-between text-xs text-gray-400">
+                      <span>0</span><span>30</span><span>60</span><span>90</span><span>120</span><span>150</span>
                     </div>
-                  ))}
+                  </div>
                 </div>
               </div>
-              <div className="ml-16 mt-1 text-center text-xs text-gray-500">Duration (day)</div>
-            </div>
+            )}
 
             <button 
               onClick={nextRound} 
-              disabled={!r1Submitted}
+              disabled={!r1Student.excE || !r1Student.pipeE || !r1Student.backE}
               className="w-full bg-green-600 text-white py-3 rounded-lg font-bold disabled:bg-gray-300"
             >
               Complete R1 → LOB Analysis
@@ -690,29 +683,31 @@ export default function LOBGame() {
           </>
         )}
 
-        {/* ===== ROUND 2: LOB Analysis with Student Input ===== */}
+        {/* ===== ROUND 2: LOB Analysis ===== */}
         {round === 2 && (
           <>
             <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
-              <h3 className="font-bold">📋 Task: Identify conflicts and revise using <strong>{DEFAULT_BUFFER}-day buffer</strong> with LOB</h3>
+              <h3 className="font-bold">📋 Task: Analyze your R1 schedule with LOB and revise using <strong>{DEFAULT_BUFFER}-day buffer</strong></h3>
             </div>
 
             <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="font-bold mb-2">STEP 1: R1 LOB Chart (Conflict Visible)</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={genLOB([r1Correct])} margin={{ bottom: 20, left: 20 }}>
+              <h3 className="font-bold mb-2">STEP 1: Your R1 Schedule as LOB Chart</h3>
+              <p className="text-sm text-gray-600 mb-2">Look for conflicts: Do any lines cross? Does a faster crew catch a slower one?</p>
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={genLOB([r1Student])} margin={{ top: 20, right: 30, bottom: 40, left: 60 }}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" label={{ value: 'Duration (day)', position: 'bottom', offset: 0 }} />
-                  <YAxis domain={[0, PROJECT_LENGTH]} tickFormatter={v => `${(v/1000).toFixed(0)}k`} label={{ value: 'Distance (ft)', angle: -90, position: 'insideLeft' }} />
+                  <XAxis dataKey="day" label={{ value: 'Duration (day)', position: 'insideBottom', offset: -10 }} />
+                  <YAxis domain={[0, PROJECT_LENGTH]} tickFormatter={v => `${(v/1000).toFixed(0)}k`} label={{ value: 'Distance (ft)', angle: -90, position: 'insideLeft', offset: 10 }} />
                   <Tooltip />
-                  <Legend />
+                  <Legend verticalAlign="top" height={36} />
                   <Line type="linear" dataKey="exc0" stroke="#2563eb" strokeWidth={2} name="Excavation" dot={false} />
                   <Line type="linear" dataKey="pipe0" stroke="#16a34a" strokeWidth={2} name="Pipe Laying" dot={false} />
                   <Line type="linear" dataKey="back0" stroke="#ea580c" strokeWidth={2} name="Backfill" dot={false} />
                 </LineChart>
               </ResponsiveContainer>
               <div className="mt-2 p-2 bg-red-100 rounded text-red-700 text-sm">
-                ⚠️ <strong>Conflict!</strong> Backfill ({CREWS.back.rate} ft/day) is faster than Pipe Laying ({CREWS.pipe.rate} ft/day)
+                ⚠️ <strong>Check for Conflict!</strong> Backfill ({CREWS.back.rate} ft/day) is faster than Pipe Laying ({CREWS.pipe.rate} ft/day). 
+                If Backfill starts too early, it will catch up!
               </div>
             </div>
 
@@ -721,25 +716,27 @@ export default function LOBGame() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="bg-blue-50 p-3 rounded">
                   <strong>Simple Buffer</strong> (slower follows faster):<br/>
-                  Start = Prev Start + Buffer
+                  <code className="bg-white px-1 rounded">Start = Prev Start + Buffer</code><br/>
+                  <span className="text-xs text-gray-500">Use when following crew is SLOWER</span>
                 </div>
                 <div className="bg-orange-50 p-3 rounded">
                   <strong>Delayed Buffer</strong> (faster follows slower):<br/>
-                  Start = Prev End + Buffer - Duration + 1
+                  <code className="bg-white px-1 rounded">Start = Prev End + Buffer - Duration + 1</code><br/>
+                  <span className="text-xs text-gray-500">Use when following crew is FASTER</span>
                 </div>
               </div>
             </div>
 
             <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="font-bold mb-2">STEP 3: 📝 Fill in the Revised Schedule (Apply {DEFAULT_BUFFER}-day Buffer)</h3>
+              <h3 className="font-bold mb-2">STEP 3: 📝 Revise Schedule (Apply {DEFAULT_BUFFER}-day Buffer)</h3>
               <table className="w-full text-sm border">
                 <thead className="bg-gray-100">
                   <tr>
                     <th className="px-2 py-2 border">Phase</th>
                     <th className="px-2 py-2 border">Rate</th>
                     <th className="px-2 py-2 border">Duration</th>
-                    <th className="px-2 py-2 border">Start</th>
-                    <th className="px-2 py-2 border">End</th>
+                    <th className="px-2 py-2 border bg-yellow-50">Start</th>
+                    <th className="px-2 py-2 border bg-yellow-50">End</th>
                     <th className="px-2 py-2 border">Buffer Type</th>
                   </tr>
                 </thead>
@@ -749,42 +746,22 @@ export default function LOBGame() {
                     <td className="px-2 py-2 border text-center">{CREWS.exc.rate}</td>
                     <td className="px-2 py-2 border text-center">{dur.exc}</td>
                     <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r2Input.excS} 
-                        onChange={(e) => setR2Input({...r2Input, excS: e.target.value})}
-                        correct={r2Correct.excS}
-                        submitted={r2Submitted}
-                      />
+                      <InputCell value={r2Input.excS} onChange={(e) => setR2Input({...r2Input, excS: e.target.value})} />
                     </td>
                     <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r2Input.excE} 
-                        onChange={(e) => setR2Input({...r2Input, excE: e.target.value})}
-                        correct={r2Correct.excE}
-                        submitted={r2Submitted}
-                      />
+                      <InputCell value={r2Input.excE} onChange={(e) => setR2Input({...r2Input, excE: e.target.value})} />
                     </td>
-                    <td className="px-2 py-2 border text-center">-</td>
+                    <td className="px-2 py-2 border text-center text-gray-400">-</td>
                   </tr>
                   <tr className="text-green-700">
                     <td className="px-2 py-2 border font-medium">Pipe Laying</td>
                     <td className="px-2 py-2 border text-center">{CREWS.pipe.rate}</td>
                     <td className="px-2 py-2 border text-center">{dur.pipe}</td>
                     <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r2Input.pipeS} 
-                        onChange={(e) => setR2Input({...r2Input, pipeS: e.target.value})}
-                        correct={r2Correct.pipeS}
-                        submitted={r2Submitted}
-                      />
+                      <InputCell value={r2Input.pipeS} onChange={(e) => setR2Input({...r2Input, pipeS: e.target.value})} />
                     </td>
                     <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r2Input.pipeE} 
-                        onChange={(e) => setR2Input({...r2Input, pipeE: e.target.value})}
-                        correct={r2Correct.pipeE}
-                        submitted={r2Submitted}
-                      />
+                      <InputCell value={r2Input.pipeE} onChange={(e) => setR2Input({...r2Input, pipeE: e.target.value})} />
                     </td>
                     <td className="px-2 py-2 border text-center text-blue-600">Simple</td>
                   </tr>
@@ -793,187 +770,118 @@ export default function LOBGame() {
                     <td className="px-2 py-2 border text-center">{CREWS.back.rate}</td>
                     <td className="px-2 py-2 border text-center">{dur.back}</td>
                     <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r2Input.backS} 
-                        onChange={(e) => setR2Input({...r2Input, backS: e.target.value})}
-                        correct={r2Correct.backS}
-                        submitted={r2Submitted}
-                      />
+                      <InputCell value={r2Input.backS} onChange={(e) => setR2Input({...r2Input, backS: e.target.value})} />
                     </td>
                     <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r2Input.backE} 
-                        onChange={(e) => setR2Input({...r2Input, backE: e.target.value})}
-                        correct={r2Correct.backE}
-                        submitted={r2Submitted}
-                      />
+                      <InputCell value={r2Input.backE} onChange={(e) => setR2Input({...r2Input, backE: e.target.value})} />
                     </td>
                     <td className="px-2 py-2 border text-center text-orange-600">Delayed</td>
                   </tr>
                 </tbody>
               </table>
-              
-              {!r2Submitted && (
-                <button onClick={checkR2Schedule} className="mt-4 bg-blue-600 text-white px-6 py-2 rounded font-bold">
-                  ✓ Check Schedule
-                </button>
-              )}
-              
-              {r2Submitted && (
-                <div className="mt-4 p-3 bg-green-50 rounded">
-                  <p className="font-bold">✅ Correct! Project End: {r2Correct.end} days</p>
+              {r2Student.end > 0 && (
+                <div className="mt-3 text-center text-lg">
+                  Project End: <strong className="text-yellow-600 text-2xl">{r2Student.end} days</strong>
                 </div>
               )}
             </div>
 
-            {r2Submitted && (
-              <>
-                <div className="bg-white rounded-lg shadow p-4">
-                  <h3 className="font-bold mb-2">STEP 4: R2 LOB Chart (No Conflict)</h3>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={genLOB([r2Correct])} margin={{ bottom: 20, left: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="day" label={{ value: 'Duration (day)', position: 'bottom', offset: 0 }} />
-                      <YAxis domain={[0, PROJECT_LENGTH]} tickFormatter={v => `${(v/1000).toFixed(0)}k`} label={{ value: 'Distance (ft)', angle: -90, position: 'insideLeft' }} />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="linear" dataKey="exc0" stroke="#2563eb" strokeWidth={2} name="Excavation" dot={false} />
-                      <Line type="linear" dataKey="pipe0" stroke="#16a34a" strokeWidth={2} name="Pipe Laying" dot={false} />
-                      <Line type="linear" dataKey="back0" stroke="#ea580c" strokeWidth={2} name="Backfill" dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                  <div className="mt-2 p-2 bg-green-100 rounded text-green-700 text-sm">✅ No Conflict!</div>
+            {/* R2 LOB Chart */}
+            {(r2Student.excS > 0 && r2Student.pipeS > 0 && r2Student.backS > 0) && (
+              <div className="bg-white rounded-lg shadow p-4">
+                <h3 className="font-bold mb-2">STEP 4: Revised LOB Chart</h3>
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={genLOB([r2Student])} margin={{ top: 20, right: 30, bottom: 40, left: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="day" label={{ value: 'Duration (day)', position: 'insideBottom', offset: -10 }} />
+                    <YAxis domain={[0, PROJECT_LENGTH]} tickFormatter={v => `${(v/1000).toFixed(0)}k`} label={{ value: 'Distance (ft)', angle: -90, position: 'insideLeft', offset: 10 }} />
+                    <Tooltip />
+                    <Legend verticalAlign="top" height={36} />
+                    <Line type="linear" dataKey="exc0" stroke="#2563eb" strokeWidth={2} name="Excavation" dot={false} />
+                    <Line type="linear" dataKey="pipe0" stroke="#16a34a" strokeWidth={2} name="Pipe Laying" dot={false} />
+                    <Line type="linear" dataKey="back0" stroke="#ea580c" strokeWidth={2} name="Backfill" dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+                <div className="mt-2 p-2 bg-green-100 rounded text-green-700 text-sm">
+                  ✅ Check: Lines should NOT cross if buffer is applied correctly!
                 </div>
-
-                <div className="bg-white rounded-lg shadow p-4">
-                  <h3 className="font-bold mb-2">STEP 5: 📝 Calculate the Budget</h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <h4 className="font-bold mb-2">Direct Costs</h4>
-                      <table className="w-full border">
-                        <tbody>
-                          <tr>
-                            <td className="px-2 py-1 border">Mobilization</td>
-                            <td className="px-2 py-1 border text-right">${MOB_COST.toLocaleString()}</td>
-                          </tr>
-                          <tr>
-                            <td className="px-2 py-1 border">Excavation ({dur.exc}d × ${CREWS.exc.cost})</td>
-                            <td className="px-2 py-1 border text-center">
-                              <InputCell 
-                                value={r2Budget.excCost} 
-                                onChange={(e) => setR2Budget({...r2Budget, excCost: e.target.value})}
-                                correct={r2CostCorrect.excC}
-                                submitted={r2BudgetSubmitted}
-                                width="w-24"
-                              />
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="px-2 py-1 border">Pipe Laying ({dur.pipe}d × ${CREWS.pipe.cost})</td>
-                            <td className="px-2 py-1 border text-center">
-                              <InputCell 
-                                value={r2Budget.pipeCost} 
-                                onChange={(e) => setR2Budget({...r2Budget, pipeCost: e.target.value})}
-                                correct={r2CostCorrect.pipeC}
-                                submitted={r2BudgetSubmitted}
-                                width="w-24"
-                              />
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="px-2 py-1 border">Backfill ({dur.back}d × ${CREWS.back.cost})</td>
-                            <td className="px-2 py-1 border text-center">
-                              <InputCell 
-                                value={r2Budget.backCost} 
-                                onChange={(e) => setR2Budget({...r2Budget, backCost: e.target.value})}
-                                correct={r2CostCorrect.backC}
-                                submitted={r2BudgetSubmitted}
-                                width="w-24"
-                              />
-                            </td>
-                          </tr>
-                          <tr className="bg-gray-100 font-bold">
-                            <td className="px-2 py-1 border">Direct Total</td>
-                            <td className="px-2 py-1 border text-center">
-                              <InputCell 
-                                value={r2Budget.direct} 
-                                onChange={(e) => setR2Budget({...r2Budget, direct: e.target.value})}
-                                correct={r2CostCorrect.direct}
-                                submitted={r2BudgetSubmitted}
-                                width="w-24"
-                              />
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                    <div>
-                      <h4 className="font-bold mb-2">Total Cost</h4>
-                      <table className="w-full border">
-                        <tbody>
-                          <tr>
-                            <td className="px-2 py-1 border">Direct Cost</td>
-                            <td className="px-2 py-1 border text-center">(from left)</td>
-                          </tr>
-                          <tr>
-                            <td className="px-2 py-1 border">Indirect ({INDIRECT_RATE*100}% of Direct)</td>
-                            <td className="px-2 py-1 border text-center">
-                              <InputCell 
-                                value={r2Budget.indirect} 
-                                onChange={(e) => setR2Budget({...r2Budget, indirect: e.target.value})}
-                                correct={r2CostCorrect.indirect}
-                                submitted={r2BudgetSubmitted}
-                                width="w-24"
-                              />
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="px-2 py-1 border">Profit ({PROFIT_RATE*100}% of Direct+Indirect)</td>
-                            <td className="px-2 py-1 border text-center">
-                              <InputCell 
-                                value={r2Budget.profit} 
-                                onChange={(e) => setR2Budget({...r2Budget, profit: e.target.value})}
-                                correct={r2CostCorrect.profit}
-                                submitted={r2BudgetSubmitted}
-                                width="w-24"
-                              />
-                            </td>
-                          </tr>
-                          <tr className="bg-green-100 font-bold text-lg">
-                            <td className="px-2 py-1 border">TOTAL</td>
-                            <td className="px-2 py-1 border text-center">
-                              <InputCell 
-                                value={r2Budget.total} 
-                                onChange={(e) => setR2Budget({...r2Budget, total: e.target.value})}
-                                correct={r2CostCorrect.total}
-                                submitted={r2BudgetSubmitted}
-                                width="w-24"
-                              />
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                  
-                  {!r2BudgetSubmitted && (
-                    <button onClick={checkR2Budget} className="mt-4 bg-blue-600 text-white px-6 py-2 rounded font-bold">
-                      ✓ Check Budget
-                    </button>
-                  )}
-                  
-                  {r2BudgetSubmitted && (
-                    <div className="mt-4 p-3 bg-green-50 rounded">
-                      <p className="font-bold">✅ Correct! Total Cost: ${r2CostCorrect.total.toLocaleString()}</p>
-                    </div>
-                  )}
-                </div>
-              </>
+              </div>
             )}
+
+            {/* Budget Section */}
+            <div className="bg-white rounded-lg shadow p-4">
+              <h3 className="font-bold mb-2">STEP 5: 📝 Calculate the Budget</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <h4 className="font-bold mb-2">Direct Costs</h4>
+                  <table className="w-full border">
+                    <tbody>
+                      <tr>
+                        <td className="px-2 py-1 border">Mobilization</td>
+                        <td className="px-2 py-1 border text-right">${MOB_COST.toLocaleString()}</td>
+                      </tr>
+                      <tr>
+                        <td className="px-2 py-1 border">Excavation ({dur.exc}d × ${CREWS.exc.cost})</td>
+                        <td className="px-2 py-1 border text-center">
+                          <InputCell value={r2Budget.excCost} onChange={(e) => setR2Budget({...r2Budget, excCost: e.target.value})} width="w-24" />
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-2 py-1 border">Pipe Laying ({dur.pipe}d × ${CREWS.pipe.cost})</td>
+                        <td className="px-2 py-1 border text-center">
+                          <InputCell value={r2Budget.pipeCost} onChange={(e) => setR2Budget({...r2Budget, pipeCost: e.target.value})} width="w-24" />
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-2 py-1 border">Backfill ({dur.back}d × ${CREWS.back.cost})</td>
+                        <td className="px-2 py-1 border text-center">
+                          <InputCell value={r2Budget.backCost} onChange={(e) => setR2Budget({...r2Budget, backCost: e.target.value})} width="w-24" />
+                        </td>
+                      </tr>
+                      <tr className="bg-gray-100 font-bold">
+                        <td className="px-2 py-1 border">Direct Total</td>
+                        <td className="px-2 py-1 border text-center">
+                          <InputCell value={r2Budget.direct} onChange={(e) => setR2Budget({...r2Budget, direct: e.target.value})} width="w-24" />
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div>
+                  <h4 className="font-bold mb-2">Total Cost</h4>
+                  <table className="w-full border">
+                    <tbody>
+                      <tr>
+                        <td className="px-2 py-1 border">Direct Cost</td>
+                        <td className="px-2 py-1 border text-center text-gray-500">(from left)</td>
+                      </tr>
+                      <tr>
+                        <td className="px-2 py-1 border">Indirect ({INDIRECT_RATE*100}% of Direct)</td>
+                        <td className="px-2 py-1 border text-center">
+                          <InputCell value={r2Budget.indirect} onChange={(e) => setR2Budget({...r2Budget, indirect: e.target.value})} width="w-24" />
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-2 py-1 border">Profit ({PROFIT_RATE*100}% of D+I)</td>
+                        <td className="px-2 py-1 border text-center">
+                          <InputCell value={r2Budget.profit} onChange={(e) => setR2Budget({...r2Budget, profit: e.target.value})} width="w-24" />
+                        </td>
+                      </tr>
+                      <tr className="bg-green-100 font-bold text-lg">
+                        <td className="px-2 py-1 border">TOTAL</td>
+                        <td className="px-2 py-1 border text-center">
+                          <InputCell value={r2Budget.total} onChange={(e) => setR2Budget({...r2Budget, total: e.target.value})} width="w-24" />
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
 
             <button 
               onClick={nextRound} 
-              disabled={!r2Submitted || !r2BudgetSubmitted}
+              disabled={!r2Student.excE || !r2Student.pipeE || !r2Student.backE}
               className="w-full bg-green-600 text-white py-3 rounded-lg font-bold disabled:bg-gray-300"
             >
               Complete R2 → Buffer Analysis
@@ -981,36 +889,33 @@ export default function LOBGame() {
           </>
         )}
 
-        {/* ===== ROUND 3: Buffer Analysis with Student Input ===== */}
+        {/* ===== ROUND 3: Buffer Analysis (No Check, Just Demo) ===== */}
         {round === 3 && (
           <>
             <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
-              <h3 className="font-bold">📋 Task: Experiment with different <strong>buffer values</strong></h3>
-              <p className="text-sm text-gray-600">Adjust the buffer and recalculate the schedule</p>
+              <h3 className="font-bold">📋 Task: See how <strong>buffer values</strong> affect project duration</h3>
+              <p className="text-sm text-gray-600">Adjust the slider and observe the changes in the schedule and LOB chart</p>
             </div>
 
             <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="font-bold mb-2">STEP 1: Change Buffer</h3>
+              <h3 className="font-bold mb-2">Adjust Buffer Value</h3>
               <div className="flex items-center gap-4">
-                <span>Buffer:</span>
+                <span className="font-medium">Buffer:</span>
                 <input 
                   type="range" 
                   min="1" 
                   max="15" 
                   value={r3Buffer} 
-                  onChange={e => {
-                    setR3Buffer(+e.target.value);
-                    setR3Submitted(false);
-                    setR3Input({ excDur: '', excS: '', excE: '', pipeDur: '', pipeS: '', pipeE: '', backDur: '', backS: '', backE: '' });
-                  }} 
-                  className="flex-1" 
+                  onChange={e => setR3Buffer(+e.target.value)} 
+                  className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
                 />
-                <span className="text-2xl font-bold text-green-600 w-12">{r3Buffer}</span>
+                <span className="text-3xl font-bold text-green-600 w-16 text-center">{r3Buffer}</span>
+                <span className="text-gray-500">days</span>
               </div>
             </div>
 
             <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="font-bold mb-2">STEP 2: 📝 Calculate R3 Schedule (Buffer = {r3Buffer} days)</h3>
+              <h3 className="font-bold mb-2">Schedule with Buffer = {r3Buffer} days</h3>
               <table className="w-full text-sm border">
                 <thead className="bg-gray-100">
                   <tr>
@@ -1025,130 +930,56 @@ export default function LOBGame() {
                   <tr className="text-blue-700">
                     <td className="px-2 py-2 border font-medium">Excavation</td>
                     <td className="px-2 py-2 border text-center">{CREWS.exc.rate}</td>
-                    <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r3Input.excDur} 
-                        onChange={(e) => setR3Input({...r3Input, excDur: e.target.value})}
-                        correct={dur.exc}
-                        submitted={r3Submitted}
-                      />
-                    </td>
-                    <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r3Input.excS} 
-                        onChange={(e) => setR3Input({...r3Input, excS: e.target.value})}
-                        correct={r3Correct.excS}
-                        submitted={r3Submitted}
-                      />
-                    </td>
-                    <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r3Input.excE} 
-                        onChange={(e) => setR3Input({...r3Input, excE: e.target.value})}
-                        correct={r3Correct.excE}
-                        submitted={r3Submitted}
-                      />
-                    </td>
+                    <td className="px-2 py-2 border text-center">{r3.excDur}</td>
+                    <td className="px-2 py-2 border text-center font-bold">{r3.excS}</td>
+                    <td className="px-2 py-2 border text-center font-bold">{r3.excE}</td>
                   </tr>
                   <tr className="text-green-700">
                     <td className="px-2 py-2 border font-medium">Pipe Laying</td>
                     <td className="px-2 py-2 border text-center">{CREWS.pipe.rate}</td>
-                    <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r3Input.pipeDur} 
-                        onChange={(e) => setR3Input({...r3Input, pipeDur: e.target.value})}
-                        correct={dur.pipe}
-                        submitted={r3Submitted}
-                      />
-                    </td>
-                    <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r3Input.pipeS} 
-                        onChange={(e) => setR3Input({...r3Input, pipeS: e.target.value})}
-                        correct={r3Correct.pipeS}
-                        submitted={r3Submitted}
-                      />
-                    </td>
-                    <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r3Input.pipeE} 
-                        onChange={(e) => setR3Input({...r3Input, pipeE: e.target.value})}
-                        correct={r3Correct.pipeE}
-                        submitted={r3Submitted}
-                      />
-                    </td>
+                    <td className="px-2 py-2 border text-center">{r3.pipeDur}</td>
+                    <td className="px-2 py-2 border text-center font-bold">{r3.pipeS}</td>
+                    <td className="px-2 py-2 border text-center font-bold">{r3.pipeE}</td>
                   </tr>
                   <tr className="text-orange-700">
                     <td className="px-2 py-2 border font-medium">Backfill</td>
                     <td className="px-2 py-2 border text-center">{CREWS.back.rate}</td>
-                    <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r3Input.backDur} 
-                        onChange={(e) => setR3Input({...r3Input, backDur: e.target.value})}
-                        correct={dur.back}
-                        submitted={r3Submitted}
-                      />
-                    </td>
-                    <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r3Input.backS} 
-                        onChange={(e) => setR3Input({...r3Input, backS: e.target.value})}
-                        correct={r3Correct.backS}
-                        submitted={r3Submitted}
-                      />
-                    </td>
-                    <td className="px-2 py-2 border text-center">
-                      <InputCell 
-                        value={r3Input.backE} 
-                        onChange={(e) => setR3Input({...r3Input, backE: e.target.value})}
-                        correct={r3Correct.backE}
-                        submitted={r3Submitted}
-                      />
-                    </td>
+                    <td className="px-2 py-2 border text-center">{r3.backDur}</td>
+                    <td className="px-2 py-2 border text-center font-bold">{r3.backS}</td>
+                    <td className="px-2 py-2 border text-center font-bold">{r3.backE}</td>
                   </tr>
                 </tbody>
               </table>
-              
-              {!r3Submitted && (
-                <button onClick={checkR3} className="mt-4 bg-blue-600 text-white px-6 py-2 rounded font-bold">
-                  ✓ Check Answers
-                </button>
-              )}
-              
-              {r3Submitted && (
-                <div className="mt-4 p-3 bg-green-50 rounded">
-                  <p className="font-bold">✅ Correct! Project End: {r3Correct.end} days</p>
-                  <p className="text-sm mt-1">💡 Buffer ↑ = Duration ↑, but Cost stays the same!</p>
-                </div>
-              )}
+              <div className="mt-3 text-center text-lg">
+                Project End: <strong className="text-green-600 text-2xl">{r3.end} days</strong>
+              </div>
             </div>
 
-            {r3Submitted && (
-              <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="font-bold mb-2">STEP 3: R2 vs R3 Comparison</h3>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={genLOB([r2Correct, r3Correct])} margin={{ bottom: 20, left: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" label={{ value: 'Duration (day)', position: 'bottom', offset: 0 }} />
-                    <YAxis domain={[0, PROJECT_LENGTH]} tickFormatter={v => `${(v/1000).toFixed(0)}k`} label={{ value: 'Distance (ft)', angle: -90, position: 'insideLeft' }} />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="linear" dataKey="exc0" stroke="#2563eb" strokeWidth={1} strokeDasharray="5 5" name="Exc R2" dot={false} />
-                    <Line type="linear" dataKey="pipe0" stroke="#16a34a" strokeWidth={1} strokeDasharray="5 5" name="Pipe R2" dot={false} />
-                    <Line type="linear" dataKey="back0" stroke="#ea580c" strokeWidth={1} strokeDasharray="5 5" name="Back R2" dot={false} />
-                    <Line type="linear" dataKey="exc1" stroke="#2563eb" strokeWidth={2} name="Exc R3" dot={false} />
-                    <Line type="linear" dataKey="pipe1" stroke="#16a34a" strokeWidth={2} name="Pipe R3" dot={false} />
-                    <Line type="linear" dataKey="back1" stroke="#ea580c" strokeWidth={2} name="Back R3" dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
+            <div className="bg-white rounded-lg shadow p-4">
+              <h3 className="font-bold mb-2">LOB Chart (Buffer = {r3Buffer} days)</h3>
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={genLOB([r3])} margin={{ top: 20, right: 30, bottom: 40, left: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="day" label={{ value: 'Duration (day)', position: 'insideBottom', offset: -10 }} />
+                  <YAxis domain={[0, PROJECT_LENGTH]} tickFormatter={v => `${(v/1000).toFixed(0)}k`} label={{ value: 'Distance (ft)', angle: -90, position: 'insideLeft', offset: 10 }} />
+                  <Tooltip />
+                  <Legend verticalAlign="top" height={36} />
+                  <Line type="linear" dataKey="exc0" stroke="#2563eb" strokeWidth={2} name="Excavation" dot={false} />
+                  <Line type="linear" dataKey="pipe0" stroke="#16a34a" strokeWidth={2} name="Pipe Laying" dot={false} />
+                  <Line type="linear" dataKey="back0" stroke="#ea580c" strokeWidth={2} name="Backfill" dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
 
-            <button 
-              onClick={nextRound} 
-              disabled={!r3Submitted}
-              className="w-full bg-green-600 text-white py-3 rounded-lg font-bold disabled:bg-gray-300"
-            >
+            <div className="bg-yellow-50 p-4 rounded">
+              <h4 className="font-bold text-yellow-800">💡 Key Insight</h4>
+              <p className="text-sm">
+                <strong>Buffer ↑ = Duration ↑</strong>, but <strong>Cost stays the same!</strong><br/>
+                The buffer only affects timing, not the actual work duration or crew costs.
+              </p>
+            </div>
+
+            <button onClick={nextRound} className="w-full bg-green-600 text-white py-3 rounded-lg font-bold">
               Complete R3 → Rate Analysis
             </button>
           </>
@@ -1171,7 +1002,7 @@ export default function LOBGame() {
                       {type === 'exc' ? '🚜 Excavation' : type === 'pipe' ? '🏗️ Pipe Laying' : '🚧 Backfill'}
                     </h4>
                     {EQUIPMENT[type].map((eq, i) => (
-                      <label key={i} className={`block p-2 rounded mb-1 cursor-pointer ${r4Eq[type] === i ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-50'}`}>
+                      <label key={i} className={`block p-2 rounded mb-1 cursor-pointer ${r4Eq[type] === i ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-50 hover:bg-gray-100'}`}>
                         <input type="radio" checked={r4Eq[type] === i} onChange={() => setR4Eq(p => ({...p, [type]: i}))} className="mr-2" />
                         <span className="font-medium">{eq.name}</span>
                         <div className="text-xs text-gray-600 ml-5">{eq.rate} ft/day | ${eq.cost}/day</div>
@@ -1240,13 +1071,13 @@ export default function LOBGame() {
 
             <div className="bg-white rounded-lg shadow p-4">
               <h3 className="font-bold mb-2">R4 LOB Chart</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={genLOB([r4])} margin={{ bottom: 20, left: 20 }}>
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={genLOB([r4])} margin={{ top: 20, right: 30, bottom: 40, left: 60 }}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" label={{ value: 'Duration (day)', position: 'bottom', offset: 0 }} />
-                  <YAxis domain={[0, PROJECT_LENGTH]} tickFormatter={v => `${(v/1000).toFixed(0)}k`} label={{ value: 'Distance (ft)', angle: -90, position: 'insideLeft' }} />
+                  <XAxis dataKey="day" label={{ value: 'Duration (day)', position: 'insideBottom', offset: -10 }} />
+                  <YAxis domain={[0, PROJECT_LENGTH]} tickFormatter={v => `${(v/1000).toFixed(0)}k`} label={{ value: 'Distance (ft)', angle: -90, position: 'insideLeft', offset: 10 }} />
                   <Tooltip />
-                  <Legend />
+                  <Legend verticalAlign="top" height={36} />
                   <Line type="linear" dataKey="exc0" stroke="#2563eb" strokeWidth={2} name="Excavation" dot={false} />
                   <Line type="linear" dataKey="pipe0" stroke="#16a34a" strokeWidth={2} name="Pipe Laying" dot={false} />
                   <Line type="linear" dataKey="back0" stroke="#ea580c" strokeWidth={2} name="Backfill" dot={false} />
@@ -1286,9 +1117,9 @@ export default function LOBGame() {
                             <div className="text-xs text-gray-500">{eq.rate} ft/d | ${eq.cost}/d</div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <button onClick={() => setR5Config(p => ({...p, [type]: {...p[type], [key]: Math.max(0, p[type][key] - 1)}}))} className="w-6 h-6 bg-gray-200 rounded">-</button>
+                            <button onClick={() => setR5Config(p => ({...p, [type]: {...p[type], [key]: Math.max(0, p[type][key] - 1)}}))} className="w-6 h-6 bg-gray-200 rounded font-bold">-</button>
                             <span className="w-6 text-center font-bold">{r5Config[type][key]}</span>
-                            <button onClick={() => setR5Config(p => ({...p, [type]: {...p[type], [key]: p[type][key] + 1}}))} className="w-6 h-6 bg-blue-200 rounded">+</button>
+                            <button onClick={() => setR5Config(p => ({...p, [type]: {...p[type], [key]: p[type][key] + 1}}))} className="w-6 h-6 bg-blue-200 rounded font-bold">+</button>
                           </div>
                         </div>
                       );
@@ -1326,13 +1157,13 @@ export default function LOBGame() {
 
             <div className="bg-white rounded-lg shadow p-4">
               <h3 className="font-bold mb-2">R5 LOB Chart</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={genLOB([r5])} margin={{ bottom: 20, left: 20 }}>
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={genLOB([r5])} margin={{ top: 20, right: 30, bottom: 40, left: 60 }}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" label={{ value: 'Duration (day)', position: 'bottom', offset: 0 }} />
-                  <YAxis domain={[0, PROJECT_LENGTH]} tickFormatter={v => `${(v/1000).toFixed(0)}k`} label={{ value: 'Distance (ft)', angle: -90, position: 'insideLeft' }} />
+                  <XAxis dataKey="day" label={{ value: 'Duration (day)', position: 'insideBottom', offset: -10 }} />
+                  <YAxis domain={[0, PROJECT_LENGTH]} tickFormatter={v => `${(v/1000).toFixed(0)}k`} label={{ value: 'Distance (ft)', angle: -90, position: 'insideLeft', offset: 10 }} />
                   <Tooltip />
-                  <Legend />
+                  <Legend verticalAlign="top" height={36} />
                   <Line type="linear" dataKey="exc0" stroke="#2563eb" strokeWidth={2} name="Excavation" dot={false} />
                   <Line type="linear" dataKey="pipe0" stroke="#16a34a" strokeWidth={2} name="Pipe Laying" dot={false} />
                   <Line type="linear" dataKey="back0" stroke="#ea580c" strokeWidth={2} name="Backfill" dot={false} />
