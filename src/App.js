@@ -334,9 +334,9 @@ export default function LOBGame() {
             <table className="w-full text-sm border">
               <thead className="bg-gray-100"><tr><th className="px-3 py-2 border text-left">Round</th><th className="px-3 py-2 border text-right">Duration</th><th className="px-3 py-2 border text-right">Cost</th></tr></thead>
               <tbody>
-                <tr><td className="px-3 py-2 border">R1: Bar Chart</td><td className="px-3 py-2 border text-right">{results[1]?.end || '-'} days</td><td className="px-3 py-2 border text-right">-</td></tr>
+                <tr><td className="px-3 py-2 border">R1: Bar Chart</td><td className="px-3 py-2 border text-right">{results[1]?.end || '-'} days</td><td className="px-3 py-2 border text-right">${results[2]?.cost?.toLocaleString() || '-'}</td></tr>
                 <tr><td className="px-3 py-2 border">R2: LOB</td><td className="px-3 py-2 border text-right">{results[2]?.end || '-'} days</td><td className="px-3 py-2 border text-right">${results[2]?.cost?.toLocaleString() || '-'}</td></tr>
-                <tr><td className="px-3 py-2 border">R3: Buffer</td><td className="px-3 py-2 border text-right">{results[3]?.end || '-'} days</td><td className="px-3 py-2 border text-right">-</td></tr>
+                <tr><td className="px-3 py-2 border">R3: Buffer</td><td className="px-3 py-2 border text-right">{results[3]?.end || '-'} days</td><td className="px-3 py-2 border text-right">${results[2]?.cost?.toLocaleString() || '-'}</td></tr>
                 <tr><td className="px-3 py-2 border">R4: Rate</td><td className="px-3 py-2 border text-right">{results[4]?.end || '-'} days</td><td className="px-3 py-2 border text-right">${results[4]?.cost?.toLocaleString() || '-'}</td></tr>
                 <tr className="font-bold"><td className="px-3 py-2 border">R5: Optimize</td><td className="px-3 py-2 border text-right">{results[5]?.end || '-'} days</td><td className="px-3 py-2 border text-right">${results[5]?.cost?.toLocaleString() || '-'}</td></tr>
               </tbody>
@@ -415,12 +415,12 @@ export default function LOBGame() {
         {round === 2 && (<>
           <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
             <h3 className="font-bold">📋 R2: Analyze with Line of Balance (LOB)</h3>
-            <p className="text-sm text-gray-600">The LOB from R1 must be revised to avoid crew overlap. Apply {DEFAULT_BUFFER}-day buffer.</p>
+            <p className="text-sm text-gray-600">The LOB from R1 must be revised. Apply {DEFAULT_BUFFER}-day buffer.</p>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-2">Your R1 Schedule as LOB</h3>
             <ResponsiveContainer width="100%" height={250}><LineChart data={genLOB([r1Student])} margin={{ top: 10, right: 30, bottom: 30, left: 60 }}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="day" label={{ value: 'Duration (day)', position: 'insideBottom', offset: -5 }} /><YAxis domain={[0, PROJECT_LENGTH]} tickFormatter={v => (v/1000).toFixed(0)+'k'} label={{ value: 'Distance (ft)', angle: -90, position: 'insideLeft', offset: 10 }} /><Tooltip /><Legend verticalAlign="top" height={36} /><Line type="linear" dataKey="exc0" stroke="#2563eb" strokeWidth={2} name="Excavation" dot={false} /><Line type="linear" dataKey="pipe0" stroke="#16a34a" strokeWidth={2} name="Pipe Laying" dot={false} /><Line type="linear" dataKey="back0" stroke="#ea580c" strokeWidth={2} name="Backfill" dot={false} /></LineChart></ResponsiveContainer>
-            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">⚠️ The LOB from R1 must be revised to avoid crew overlap.</div>
+            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">⚠️ The LOB from R1 must be revised.</div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-2">📐 Buffer Formulas</h3>
@@ -432,7 +432,7 @@ export default function LOBGame() {
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-2">📝 Revise Schedule ({DEFAULT_BUFFER}-day Buffer)</h3>
             <table className="w-full text-sm border">
-              <thead className="bg-gray-100"><tr><th className="px-2 py-2 border">Activity</th><th className="px-2 py-2 border">Rate (ft/day)</th><th className="px-2 py-2 border">Duration (day)</th><th className="px-2 py-2 border bg-yellow-50">Start</th><th className="px-2 py-2 border bg-yellow-50">End</th></tr></thead>
+              <thead className="bg-gray-100"><tr><th className="px-2 py-2 border">Activity</th><th className="px-2 py-2 border">Rate (ft/day)</th><th className="px-2 py-2 border">Duration (days)</th><th className="px-2 py-2 border bg-yellow-50">Start</th><th className="px-2 py-2 border bg-yellow-50">End</th></tr></thead>
               <tbody>
                 <tr className="bg-gray-50"><td className="px-2 py-2 border">Mobilization</td><td className="px-2 py-2 border text-center">-</td><td className="px-2 py-2 border text-center">{MOB_DAYS}</td><td className="px-2 py-2 border text-center">1</td><td className="px-2 py-2 border text-center">{MOB_DAYS}</td></tr>
                 <tr className="text-blue-700"><td className="px-2 py-2 border">Excavation</td><td className="px-2 py-2 border text-center">{CREWS.exc.rate}</td><td className="px-2 py-2 border text-center">{dur.exc}</td><td className="px-2 py-2 border text-center"><InputCell value={r2Input.excS} onChange={(e) => setR2Input({...r2Input, excS: e.target.value})} correct={r2Correct.excS} submitted={r2Validated} /></td><td className="px-2 py-2 border text-center"><InputCell value={r2Input.excE} onChange={(e) => setR2Input({...r2Input, excE: e.target.value})} correct={r2Correct.excE} submitted={r2Validated} /></td></tr>
@@ -466,7 +466,7 @@ export default function LOBGame() {
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-2">Schedule (Buffer = {r3Buffer} days)</h3>
             <table className="w-full text-sm border">
-              <thead className="bg-gray-100"><tr><th className="px-2 py-2 border">Activity</th><th className="px-2 py-2 border">Rate</th><th className="px-2 py-2 border">Duration</th><th className="px-2 py-2 border">Start</th><th className="px-2 py-2 border">End</th></tr></thead>
+              <thead className="bg-gray-100"><tr><th className="px-2 py-2 border">Activity</th><th className="px-2 py-2 border">Rate (ft/day)</th><th className="px-2 py-2 border">Duration (days)</th><th className="px-2 py-2 border">Start</th><th className="px-2 py-2 border">End</th></tr></thead>
               <tbody>
                 <tr className="bg-gray-50"><td className="px-2 py-2 border">Mobilization</td><td className="px-2 py-2 border text-center">-</td><td className="px-2 py-2 border text-center">{MOB_DAYS}</td><td className="px-2 py-2 border text-center">1</td><td className="px-2 py-2 border text-center">{MOB_DAYS}</td></tr>
                 <tr className="text-blue-700"><td className="px-2 py-2 border">Excavation</td><td className="px-2 py-2 border text-center">{CREWS.exc.rate}</td><td className="px-2 py-2 border text-center">{dur.exc}</td><td className="px-2 py-2 border text-center">{r3.excS}</td><td className="px-2 py-2 border text-center">{r3.excE}</td></tr>
@@ -496,7 +496,7 @@ export default function LOBGame() {
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-2">R4 Schedule</h3>
             <table className="w-full text-sm border">
-              <thead className="bg-gray-100"><tr><th className="px-2 py-1 border">Activity</th><th className="px-2 py-1 border">Equipment</th><th className="px-2 py-1 border">Rate</th><th className="px-2 py-1 border">Duration</th><th className="px-2 py-1 border">Cost/day</th><th className="px-2 py-1 border">Start</th><th className="px-2 py-1 border">End</th></tr></thead>
+              <thead className="bg-gray-100"><tr><th className="px-2 py-1 border">Activity</th><th className="px-2 py-1 border">Equipment</th><th className="px-2 py-1 border">Rate (ft/day)</th><th className="px-2 py-1 border">Duration (days)</th><th className="px-2 py-1 border">Cost/day</th><th className="px-2 py-1 border">Start</th><th className="px-2 py-1 border">End</th></tr></thead>
               <tbody>
                 <tr className="bg-gray-50"><td className="px-2 py-1 border">Mobilization</td><td className="px-2 py-1 border text-center">-</td><td className="px-2 py-1 border text-center">-</td><td className="px-2 py-1 border text-center">{MOB_DAYS}</td><td className="px-2 py-1 border text-center">-</td><td className="px-2 py-1 border text-center">1</td><td className="px-2 py-1 border text-center">{MOB_DAYS}</td></tr>
                 <tr className="text-blue-700"><td className="px-2 py-1 border">Excavation</td><td className="px-2 py-1 border text-center text-xs">{r4.excName}</td><td className="px-2 py-1 border text-center">{r4.excRate}</td><td className="px-2 py-1 border text-center font-bold">{r4.excDur}</td><td className="px-2 py-1 border text-center">${r4.excCost}</td><td className="px-2 py-1 border text-center">{r4.excS}</td><td className="px-2 py-1 border text-center">{r4.excE}</td></tr>
@@ -530,7 +530,7 @@ export default function LOBGame() {
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-2">R5 Schedule</h3>
             <table className="w-full text-sm border">
-              <thead className="bg-gray-100"><tr><th className="px-2 py-1 border">Activity</th><th className="px-2 py-1 border">Rate</th><th className="px-2 py-1 border">Duration</th><th className="px-2 py-1 border">Cost/day</th><th className="px-2 py-1 border">Start</th><th className="px-2 py-1 border">End</th></tr></thead>
+              <thead className="bg-gray-100"><tr><th className="px-2 py-1 border">Activity</th><th className="px-2 py-1 border">Rate (ft/day)</th><th className="px-2 py-1 border">Duration (days)</th><th className="px-2 py-1 border">Cost/day</th><th className="px-2 py-1 border">Start</th><th className="px-2 py-1 border">End</th></tr></thead>
               <tbody>
                 <tr className="bg-gray-50"><td className="px-2 py-1 border">Mobilization</td><td className="px-2 py-1 border text-center">-</td><td className="px-2 py-1 border text-center">{MOB_DAYS}</td><td className="px-2 py-1 border text-center">-</td><td className="px-2 py-1 border text-center">1</td><td className="px-2 py-1 border text-center">{MOB_DAYS}</td></tr>
                 <tr className="text-blue-700"><td className="px-2 py-1 border">Excavation</td><td className="px-2 py-1 border text-center">{r5.excRate}</td><td className="px-2 py-1 border text-center font-bold">{r5.excDur}</td><td className="px-2 py-1 border text-center">${r5.excCost}</td><td className="px-2 py-1 border text-center">{r5.excS}</td><td className="px-2 py-1 border text-center">{r5.excE}</td></tr>
