@@ -335,9 +335,9 @@ export default function LOBGame() {
               <thead className="bg-gray-100"><tr><th className="px-3 py-2 border text-left">Round</th><th className="px-3 py-2 border text-right">Duration</th><th className="px-3 py-2 border text-right">Cost</th></tr></thead>
               <tbody>
                 <tr><td className="px-3 py-2 border">R1: Bar Chart</td><td className="px-3 py-2 border text-right">{results[1]?.end || '-'} days</td><td className="px-3 py-2 border text-right">${results[2]?.cost?.toLocaleString() || '-'}</td></tr>
-                <tr><td className="px-3 py-2 border">R2: LOB</td><td className="px-3 py-2 border text-right">{results[2]?.end || '-'} days</td><td className="px-3 py-2 border text-right">${results[2]?.cost?.toLocaleString() || '-'}</td></tr>
-                <tr><td className="px-3 py-2 border">R3: Buffer</td><td className="px-3 py-2 border text-right">{results[3]?.end || '-'} days</td><td className="px-3 py-2 border text-right">${results[2]?.cost?.toLocaleString() || '-'}</td></tr>
-                <tr><td className="px-3 py-2 border">R4: Rate</td><td className="px-3 py-2 border text-right">{results[4]?.end || '-'} days</td><td className="px-3 py-2 border text-right">${results[4]?.cost?.toLocaleString() || '-'}</td></tr>
+                <tr><td className="px-3 py-2 border">R2: LOB Analysis</td><td className="px-3 py-2 border text-right">{results[2]?.end || '-'} days</td><td className="px-3 py-2 border text-right">${results[2]?.cost?.toLocaleString() || '-'}</td></tr>
+                <tr><td className="px-3 py-2 border">R3: Buffer Analysis</td><td className="px-3 py-2 border text-right">{results[3]?.end || '-'} days</td><td className="px-3 py-2 border text-right">${results[2]?.cost?.toLocaleString() || '-'}</td></tr>
+                <tr><td className="px-3 py-2 border">R4: Rate Analysis</td><td className="px-3 py-2 border text-right">{results[4]?.end || '-'} days</td><td className="px-3 py-2 border text-right">${results[4]?.cost?.toLocaleString() || '-'}</td></tr>
                 <tr className="font-bold"><td className="px-3 py-2 border">R5: Optimize</td><td className="px-3 py-2 border text-right">{results[5]?.end || '-'} days</td><td className="px-3 py-2 border text-right">${results[5]?.cost?.toLocaleString() || '-'}</td></tr>
               </tbody>
             </table>
