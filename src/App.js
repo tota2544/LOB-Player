@@ -219,53 +219,55 @@ export default function LOBGame() {
           </div>
 
       <div className="bg-white rounded-xl p-5">
-        <h2 className="text-xl font-bold text-blue-900 border-b pb-2 mb-4">👷 CREW DEFINITIONS</h2>
+        <h2 className="text-xl font-bold text-blue-900 border-b pb-2 mb-4">
+          👷 CREW DEFINITIONS
+        </h2>
+      
         <div className="overflow-x-auto">
-          <table className="w-full text-sm font-bold">
+          <table className="w-full text-sm font-bold table-auto">
             <thead className="bg-blue-100">
               <tr>
-                <th className="px-2 py-2 text-left">Crew</th>
-                <th className="px-2 py-2">Activity</th>
-                <th className="px-2 py-2">Workers</th>
-                <th className="px-2 py-2">Equipment</th>
-                <th className="px-2 py-2 text-right">Daily Cost</th>
-                <th className="px-2 py-2 text-right">Productivity Rate</th>
-      
-              <tbody>
-                <tr className="bg-blue-50 border-b">
-                  <td className="px-2 py-2 font-bold text-blue-700">Crew A</td>
-                  <td className="px-2 py-2">{CREWS.exc.name}</td>
-                  <td className="px-2 py-2 text-center">{CREWS.exc.workers}</td>
-                  <td className="px-2 py-2">{CREWS.exc.equipment}</td>
-                  <td className="px-2 py-2 text-right">${CREWS.exc.cost}/day</td>
-                  <td className="px-2 py-2 text-right font-bold">{CREWS.exc.rate} ft/day</td>
-                </tr>
-              
-                <tr className="bg-green-50 border-b">
-                  <td className="px-2 py-2 font-bold text-green-700">Crew B</td>
-                  <td className="px-2 py-2">{CREWS.pipe.name}</td>
-                  <td className="px-2 py-2 text-center">{CREWS.pipe.workers}</td>
-                  <td className="px-2 py-2">{CREWS.pipe.equipment}</td>
-                  <td className="px-2 py-2 text-right">${CREWS.pipe.cost}/day</td>
-                  <td className="px-2 py-2 text-right font-bold">{CREWS.pipe.rate} ft/day</td>
-                </tr>
-              
-                <tr className="bg-orange-50">
-                  <td className="px-2 py-2 font-bold text-orange-700">Crew C</td>
-                  <td className="px-2 py-2">{CREWS.back.name}</td>
-                  <td className="px-2 py-2 text-center">{CREWS.back.workers}</td>
-                  <td className="px-2 py-2">{CREWS.back.equipment}</td>
-                  <td className="px-2 py-2 text-right">${CREWS.back.cost}/day</td>
-                  <td className="px-2 py-2 text-right font-bold">{CREWS.back.rate} ft/day</td>
-                </tr>
-              </tbody>
+                <th className="px-3 py-3 text-left">Crew</th>
+                <th className="px-3 py-3 text-left">Activity</th>
+                <th className="px-3 py-3 text-center">Workers</th>
+                <th className="px-3 py-3 text-left">Equipment</th>
+                <th className="px-3 py-3 text-right">Daily Cost</th>
+                <th className="px-3 py-3 text-right">Productivity Rate</th>
               </tr>
             </thead>
+      
             <tbody>
+              <tr className="bg-blue-50 border-b">
+                <td className="px-3 py-3 text-blue-700">Crew A</td>
+                <td className="px-3 py-3">{CREWS.exc.name}</td>
+                <td className="px-3 py-3 text-center">{CREWS.exc.workers}</td>
+                <td className="px-3 py-3">{CREWS.exc.equipment}</td>
+                <td className="px-3 py-3 text-right">${CREWS.exc.cost}/day</td>
+                <td className="px-3 py-3 text-right">{CREWS.exc.rate} ft/day</td>
+              </tr>
+      
+              <tr className="bg-green-50 border-b">
+                <td className="px-3 py-3 text-green-700">Crew B</td>
+                <td className="px-3 py-3">{CREWS.pipe.name}</td>
+                <td className="px-3 py-3 text-center">{CREWS.pipe.workers}</td>
+                <td className="px-3 py-3">{CREWS.pipe.equipment}</td>
+                <td className="px-3 py-3 text-right">${CREWS.pipe.cost}/day</td>
+                <td className="px-3 py-3 text-right">{CREWS.pipe.rate} ft/day</td>
+              </tr>
+      
+              <tr className="bg-orange-50">
+                <td className="px-3 py-3 text-orange-700">Crew C</td>
+                <td className="px-3 py-3">{CREWS.back.name}</td>
+                <td className="px-3 py-3 text-center">{CREWS.back.workers}</td>
+                <td className="px-3 py-3">{CREWS.back.equipment}</td>
+                <td className="px-3 py-3 text-right">${CREWS.back.cost}/day</td>
+                <td className="px-3 py-3 text-right">{CREWS.back.rate} ft/day</td>
+              </tr>
             </tbody>
           </table>
         </div>
       </div>
+      ``
 
 
       <div className="bg-white rounded-xl p-5">
