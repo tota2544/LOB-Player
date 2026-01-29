@@ -233,12 +233,11 @@ export default function LOBGame() {
               </tr>
             </thead>
             <tbody>
-              {/* rows unchanged */}
             </tbody>
           </table>
         </div>
       </div>
-``
+
 
       <div className="bg-white rounded-xl p-5">
         <h2 className="text-xl font-bold text-blue-900 border-b pb-2 mb-4">🚜 EQUIPMENT OPTIONS</h2>
