@@ -11,25 +11,26 @@ const TARGET_DAYS = 55;
 const TARGET_COST = 550000;
 
 const CREWS = {
-  exc: { rate: 220, cost: 1600, name: 'Excavation & Bedding', workers: 2, equipment: '1 Excavator' },
-  pipe: { rate: 180, cost: 2500, name: 'Pipe Laying & Alignment', workers: 3, equipment: '1 Mobile Crane' },
-  back: { rate: 250, cost: 2300, name: 'Backfill & Compaction', workers: 3, equipment: '1 Excavator + 1 Compactor' },
+  exc: { rate: 220, cost: 1600, name: 'Excavation & Bedding', equipment: 'Excavator' },
+  pipe: { rate: 180, cost: 2500, name: 'Pipe Laying & Alignment', equipment: 'Mobile Crane' },
+  back: { rate: 250, cost: 2300, name: 'Backfill & Compaction', equipment: 'Excavator + Compactor' },
 };
+
 
 const EQUIPMENT = {
   exc: [
     { name: 'Small Excavator', rate: 165, cost: 900 },
-    { name: 'Standard Excavator', rate: 220, cost: 1200 },
-    { name: 'Large Excavator', rate: 330, cost: 1800 },
+    { name: 'Standard Excavator', rate: 220, cost: 1600 },
+    { name: 'Large Excavator', rate: 330, cost: 2400 },
   ],
   pipe: [
-    { name: 'Standard Crane', rate: 180, cost: 1800 },
-    { name: 'Heavy Crane', rate: 270, cost: 2800 },
+    { name: 'Standard Mobile Crane', rate: 180, cost: 2500 },
+    { name: 'Heavy Mobile Crane', rate: 270, cost: 3200 },
   ],
   back: [
     { name: 'Small Backfill Set', rate: 180, cost: 1400 },
-    { name: 'Standard Backfill Set', rate: 250, cost: 1800 },
-    { name: 'Large Backfill Set', rate: 375, cost: 2600 },
+    { name: 'Standard Backfill Set', rate: 250, cost: 2300 },
+    { name: 'Large Backfill Set', rate: 375, cost: 3000 },
   ],
 };
 
@@ -211,97 +212,60 @@ export default function LOBGame() {
             <h2 className="text-xl font-bold text-blue-900 border-b pb-2 mb-4">📋 PROJECT OVERVIEW</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
               <div className="bg-blue-50 p-3 rounded"><div className="text-gray-500">Project</div><div className="font-bold">College Station Water Pipeline</div></div>
-              <div className="bg-blue-50 p-3 rounded"><div className="text-gray-500">Pipeline Type</div><div className="font-bold">24" PCCP</div></div>
+              <div className="bg-blue-50 p-3 rounded"><div className="text-gray-500">Pipeline Type</div><div className="font-bold">24" Prestressed Concrete Cylinder Pipe</div></div>
               <div className="bg-blue-50 p-3 rounded"><div className="text-gray-500">Total Length</div><div className="font-bold text-xl">{PROJECT_LENGTH.toLocaleString()} ft</div></div>
               <div className="bg-blue-50 p-3 rounded"><div className="text-gray-500">Mobilization</div><div className="font-bold">{MOB_DAYS} days — ${MOB_COST.toLocaleString()}</div></div>
               <div className="bg-blue-50 p-3 rounded"><div className="text-gray-500">Start Buffer</div><div className="font-bold">{DEFAULT_BUFFER} days</div></div>
             </div>
           </div>
 
-      <div className="bg-white rounded-xl p-5">
-        <h2 className="text-xl font-bold text-blue-900 border-b pb-2 mb-4">
-          👷 CREW DEFINITIONS
-        </h2>
       
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm font-bold table-auto">
-            <thead className="bg-blue-100">
-              <tr>
-                <th className="px-3 py-3 text-left">Crew</th>
-                <th className="px-3 py-3 text-left">Activity</th>
-                <th className="px-3 py-3 text-center">Workers</th>
-                <th className="px-3 py-3 text-left">Equipment</th>
-                <th className="px-3 py-3 text-right">Daily Cost</th>
-                <th className="px-3 py-3 text-right">Productivity Rate</th>
-              </tr>
-            </thead>
-      
-            <tbody>
-              <tr className="bg-blue-50 border-b">
-                <td className="px-3 py-3 text-blue-700">Crew A</td>
-                <td className="px-3 py-3">{CREWS.exc.name}</td>
-                <td className="px-3 py-3 text-center">{CREWS.exc.workers}</td>
-                <td className="px-3 py-3">{CREWS.exc.equipment}</td>
-                <td className="px-3 py-3 text-right">${CREWS.exc.cost}/day</td>
-                <td className="px-3 py-3 text-right">{CREWS.exc.rate} ft/day</td>
-              </tr>
-      
-              <tr className="bg-green-50 border-b">
-                <td className="px-3 py-3 text-green-700">Crew B</td>
-                <td className="px-3 py-3">{CREWS.pipe.name}</td>
-                <td className="px-3 py-3 text-center">{CREWS.pipe.workers}</td>
-                <td className="px-3 py-3">{CREWS.pipe.equipment}</td>
-                <td className="px-3 py-3 text-right">${CREWS.pipe.cost}/day</td>
-                <td className="px-3 py-3 text-right">{CREWS.pipe.rate} ft/day</td>
-              </tr>
-      
-              <tr className="bg-orange-50">
-                <td className="px-3 py-3 text-orange-700">Crew C</td>
-                <td className="px-3 py-3">{CREWS.back.name}</td>
-                <td className="px-3 py-3 text-center">{CREWS.back.workers}</td>
-                <td className="px-3 py-3">{CREWS.back.equipment}</td>
-                <td className="px-3 py-3 text-right">${CREWS.back.cost}/day</td>
-                <td className="px-3 py-3 text-right">{CREWS.back.rate} ft/day</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      ``
-
-
-      <div className="bg-white rounded-xl p-5">
-        <h2 className="text-xl font-bold text-blue-900 border-b pb-2 mb-4">🚜 EQUIPMENT OPTIONS</h2>
-      
-        <div className="grid grid-cols-3 gap-4 text-sm font-bold">
-          <div>
-            <h4 className="font-bold text-blue-700 mb-2">Excavation</h4>
-            {EQUIPMENT.exc.map((e, i) => (
-              <div key={i} className="bg-blue-50 p-2 rounded mb-1">
-                {e.name} — {e.rate} ft/day | ${e.cost}/day
-              </div>
-            ))}
+        <div className="bg-white rounded-xl p-5">
+          <h2 className="text-xl font-bold text-blue-900 border-b pb-2 mb-4">
+            👷 CREW DEFINITIONS
+          </h2>
+        
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm font-bold table-auto">
+              <thead className="bg-blue-100">
+                <tr>
+                  <th className="px-3 py-3 text-left">Crew</th>
+                  <th className="px-3 py-3 text-left">Activity</th>
+                  <th className="px-3 py-3 text-left">Equipment</th>
+                  <th className="px-3 py-3 text-right">Daily Cost ($/day)</th>
+                  <th className="px-3 py-3 text-right">Productivity Rate (ft/day)</th>
+                </tr>
+              </thead>
+        
+              <tbody>
+                <tr className="bg-blue-50 border-b">
+                  <td className="px-3 py-3 text-blue-700">Crew A</td>
+                  <td className="px-3 py-3">{CREWS.exc.name}</td>
+                  <td className="px-3 py-3">{CREWS.exc.equipment}</td>
+                  <td className="px-3 py-3 text-right">{CREWS.exc.cost}</td>
+                  <td className="px-3 py-3 text-right">{CREWS.exc.rate}</td>
+                </tr>
+        
+                <tr className="bg-green-50 border-b">
+                  <td className="px-3 py-3 text-green-700">Crew B</td>
+                  <td className="px-3 py-3">{CREWS.pipe.name}</td>
+                  <td className="px-3 py-3">{CREWS.pipe.equipment}</td>
+                  <td className="px-3 py-3 text-right">{CREWS.pipe.cost}</td>
+                  <td className="px-3 py-3 text-right">{CREWS.pipe.rate}</td>
+                </tr>
+        
+                <tr className="bg-orange-50">
+                  <td className="px-3 py-3 text-orange-700">Crew C</td>
+                  <td className="px-3 py-3">{CREWS.back.name}</td>
+                  <td className="px-3 py-3">{CREWS.back.equipment}</td>
+                  <td className="px-3 py-3 text-right">{CREWS.back.cost}</td>
+                  <td className="px-3 py-3 text-right">{CREWS.back.rate}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-      
-          <div>
-            <h4 className="font-bold text-green-700 mb-2">Pipe Laying</h4>
-            {EQUIPMENT.pipe.map((e, i) => (
-              <div key={i} className="bg-green-50 p-2 rounded mb-1">
-                {e.name} — {e.rate} ft/day | ${e.cost}/day
-              </div>
-            ))}
-          </div>
-
-    <div>
-      <h4 className="font-bold text-orange-700 mb-2">Backfill</h4>
-      {EQUIPMENT.back.map((e, i) => (
-        <div key={i} className="bg-orange-50 p-2 rounded mb-1">
-          {e.name} — {e.rate} ft/day | ${e.cost}/day
         </div>
-      ))}
-    </div>
-  </div>
-</div>
+        ``
 
           <div className="bg-white rounded-xl p-5">
             <h2 className="text-xl font-bold text-blue-900 mb-4">🚀 Ready to Play?</h2>
