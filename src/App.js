@@ -503,6 +503,39 @@ export default function LOBGame() {
               </tbody>
             </table>
           </div>
+                    {/* R5: LOB Chart (based on the R5 schedule) */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <h3 className="font-bold mb-2">📈 R5 Line of Balance (LOB)</h3>
+          
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart
+                data={genLOB([r5])}
+                margin={{ top: 10, right: 30, bottom: 30, left: 60 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="day"
+                  label={{ value: 'Duration (day)', position: 'insideBottom', offset: -5 }}
+                />
+                <YAxis
+                  domain={[0, PROJECT_LENGTH]}
+                  tickFormatter={(v) => (v / 1000).toFixed(0) + 'k'}
+                  label={{ value: 'Distance (ft)', angle: -90, position: 'insideLeft', offset: 10 }}
+                />
+                <Tooltip />
+                <Legend verticalAlign="top" height={36} />
+          
+                <Line type="linear" dataKey="exc0" stroke="#2563eb" strokeWidth={3} name="Excavation & Bedding" dot={false} />
+                <Line type="linear" dataKey="pipe0" stroke="#16a34a" strokeWidth={3} name="Pipe Laying & Alignment" dot={false} />
+                <Line type="linear" dataKey="back0" stroke="#ea580c" strokeWidth={3} name="Backfill & Compaction" dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          
+            <div className="mt-2 text-sm text-gray-600">
+              This LOB is generated directly from your R5 start/end days and productivity rates.
+            </div>
+          </div>
+          ``
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-2">Constraints Check</h3>
             <div className="grid grid-cols-2 gap-4">
