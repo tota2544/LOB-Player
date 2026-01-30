@@ -302,7 +302,7 @@ export default function LOBGame() {
                 <tr><td className="px-3 py-2 border">R2: LOB Analysis</td><td className="px-3 py-2 border text-right">{results[2]?.end || '-'} days</td><td className="px-3 py-2 border text-right">${results[2]?.cost?.toLocaleString() || '-'}</td></tr>
                 <tr><td className="px-3 py-2 border">R3: Buffer Analysis</td><td className="px-3 py-2 border text-right">{results[3]?.end || '-'} days</td><td className="px-3 py-2 border text-right">${results[2]?.cost?.toLocaleString() || '-'}</td></tr>
                 <tr><td className="px-3 py-2 border">R4: Rate Analysis</td><td className="px-3 py-2 border text-right">{results[4]?.end || '-'} days</td><td className="px-3 py-2 border text-right">${results[4]?.cost?.toLocaleString() || '-'}</td></tr>
-                <tr className="font-bold"><td className="px-3 py-2 border">R5: Optimize</td><td className="px-3 py-2 border text-right">{results[5]?.end || '-'} days</td><td className="px-3 py-2 border text-right">${results[5]?.cost?.toLocaleString() || '-'}</td></tr>
+                <tr className="font-bold"><td className="px-3 py-2 border">R5: Optimize for Constraints</td><td className="px-3 py-2 border text-right">{results[5]?.end || '-'} days</td><td className="px-3 py-2 border text-right">${results[5]?.cost?.toLocaleString() || '-'}</td></tr>
               </tbody>
             </table>
           </div>
@@ -324,7 +324,7 @@ export default function LOBGame() {
     );
   }
 
-  const titles = { 1: 'Bar Chart', 2: 'LOB Analysis', 3: 'Buffer Analysis', 4: 'Rate Analysis', 5: 'Optimize' };
+  const titles = { 1: 'Bar Chart', 2: 'LOB Analysis', 3: 'Buffer Analysis', 4: 'Rate Analysis', 5: 'Optimize for Constraints' };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -481,7 +481,7 @@ export default function LOBGame() {
           <button onClick={nextRound} className="w-full bg-green-600 text-white py-3 rounded-lg font-bold">Complete R4 → R5</button>
         </>)}
 
-        {/* R5: Optimize */}
+        {/* R5: Optimize for Constraints */}
         {round === 5 && (<>
           <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded"><h3 className="font-bold">📋 R5: Optimization</h3><p className="text-sm">Meet constraints: ≤{TARGET_DAYS} days and ≤${TARGET_COST.toLocaleString()}</p></div>
           <div className="bg-white rounded-lg shadow p-4">
