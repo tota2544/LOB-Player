@@ -228,17 +228,6 @@ export default function LOBGame() {
               <div className="bg-blue-50 p-3 rounded"><div className="text-gray-500">Start Buffer</div><div className="font-bold">{DEFAULT_BUFFER} days</div></div>
             </div>
           </div>
-            {/* Project Overview Introduction */}
-      <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-        <p className="text-sm leading-relaxed text-blue-900">
-          This simulation places you in the role of a construction planner responsible for scheduling
-          a major water pipeline project. Over five rounds, you will explore how crew productivity,
-          spacing (buffers), and activity sequencing influence progress using the Line of Balance (LOB)
-          method. Your goal is to build a feasible schedule, avoid crew conflicts, and optimize both
-          duration and cost—just like a real project engineer.
-        </p>
-      </div>
-
       
         <div className="bg-white rounded-xl p-5">
           <h2 className="text-xl font-bold text-blue-900 border-b pb-2 mb-4">
