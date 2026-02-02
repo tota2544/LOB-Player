@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
 const PROJECT_LENGTH = 15840;
 const MOB_DAYS = 14;
 const MOB_COST = 25000;
@@ -9,13 +8,11 @@ const INDIRECT_RATE = 0.30;
 const PROFIT_RATE = 0.05;
 const TARGET_DAYS = 55;
 const TARGET_COST = 550000;
-
 const CREWS = {
   exc: { rate: 220, cost: 1600, name: 'Excavation & Bedding', equipment: 'Excavator' },
   pipe: { rate: 180, cost: 2500, name: 'Pipe Laying & Alignment', equipment: 'Mobile Crane' },
   back: { rate: 250, cost: 2300, name: 'Backfill & Compaction', equipment: 'Excavator + Compactor' },
 };
-
 
 const EQUIPMENT = {
   exc: [
@@ -33,7 +30,6 @@ const EQUIPMENT = {
     { name: 'Large Backfill Set', rate: 375, cost: 3000 },
   ],
 };
-
 export default function LOBGame() {
   const [round, setRound] = useState(0);
   const [name, setName] = useState('');
@@ -47,15 +43,26 @@ export default function LOBGame() {
     pipe: { standard: 1, heavy: 0 },
     back: { small: 0, standard: 1, large: 0 },
   });
+  // R1 Quiz State
+  const [r1Step, setR1Step] = useState(1); // 1 = Quiz, 2 = Scheduler
+  const [quizAnswers, setQuizAnswers] = useState({ q1: null, q2: null, q3: '' });
+  const [quizSubmitted, setQuizSubmitted] = useState({ q1: false, q2: false, q3: false });
+
+  // Quiz validation
+  const quizCorrect = {
+    q1: quizAnswers.q1 === 'c',
+    q2: quizAnswers.q2 === 'b',
+    q3: parseInt(quizAnswers.q3) === 64
+  };
+  const allQuizCorrect = quizSubmitted.q1 && quizSubmitted.q2 && quizSubmitted.q3 &&
+                         quizCorrect.q1 && quizCorrect.q2 && quizCorrect.q3;
   const [r5Buffer, setR5Buffer] = useState(5);
   const [results, setResults] = useState({});
-
   const dur = useMemo(() => ({
     exc: Math.ceil(PROJECT_LENGTH / CREWS.exc.rate),
     pipe: Math.ceil(PROJECT_LENGTH / CREWS.pipe.rate),
     back: Math.ceil(PROJECT_LENGTH / CREWS.back.rate),
   }), []);
-
   const r1Student = useMemo(() => {
     const excS = MOB_DAYS + 1;
     const excE = excS + dur.exc - 1;
@@ -65,27 +72,22 @@ export default function LOBGame() {
     const backE = backS > 0 ? backS + dur.back - 1 : 0;
     return { excS, excE, pipeS, pipeE, backS, backE, end: Math.max(excE, pipeE, backE) };
   }, [r1Input, dur]);
-
   const r1IsValid = r1Student.pipeS > 0 && r1Student.backS > 0;
-
   const r2Correct = useMemo(() => {
     const excS = MOB_DAYS + 1, excE = excS + dur.exc - 1;
     const pipeS = excS + DEFAULT_BUFFER, pipeE = pipeS + dur.pipe - 1;
     const backS = pipeE + DEFAULT_BUFFER - dur.back + 1, backE = backS + dur.back - 1;
     return { excS, excE, pipeS, pipeE, backS, backE, end: Math.max(excE, pipeE, backE) };
   }, [dur]);
-
   const r2Student = useMemo(() => ({
     excS: parseInt(r2Input.excS) || 0, excE: parseInt(r2Input.excE) || 0,
     pipeS: parseInt(r2Input.pipeS) || 0, pipeE: parseInt(r2Input.pipeE) || 0,
     backS: parseInt(r2Input.backS) || 0, backE: parseInt(r2Input.backE) || 0,
     end: Math.max(parseInt(r2Input.excE) || 0, parseInt(r2Input.pipeE) || 0, parseInt(r2Input.backE) || 0)
   }), [r2Input]);
-
   const r2IsCorrect = r2Student.excS === r2Correct.excS && r2Student.excE === r2Correct.excE &&
                      r2Student.pipeS === r2Correct.pipeS && r2Student.pipeE === r2Correct.pipeE &&
                      r2Student.backS === r2Correct.backS && r2Student.backE === r2Correct.backE;
-
   const r2Cost = useMemo(() => {
     const excC = dur.exc * CREWS.exc.cost, pipeC = dur.pipe * CREWS.pipe.cost, backC = dur.back * CREWS.back.cost;
     const direct = MOB_COST + excC + pipeC + backC;
@@ -93,14 +95,12 @@ export default function LOBGame() {
     const profit = Math.round((direct + indirect) * PROFIT_RATE);
     return { direct, indirect, profit, total: direct + indirect + profit, excC, pipeC, backC };
   }, [dur]);
-
   const r3 = useMemo(() => {
     const excS = MOB_DAYS + 1, excE = excS + dur.exc - 1;
     const pipeS = excS + r3Buffer, pipeE = pipeS + dur.pipe - 1;
     const backS = pipeE + r3Buffer - dur.back + 1, backE = backS + dur.back - 1;
     return { excS, excE, pipeS, pipeE, backS, backE, end: Math.max(excE, pipeE, backE) };
   }, [dur, r3Buffer]);
-
   const r4 = useMemo(() => {
     const exc = EQUIPMENT.exc[r4Eq.exc], pipe = EQUIPMENT.pipe[r4Eq.pipe], back = EQUIPMENT.back[r4Eq.back];
     const excDur = Math.ceil(PROJECT_LENGTH / exc.rate), pipeDur = Math.ceil(PROJECT_LENGTH / pipe.rate), backDur = Math.ceil(PROJECT_LENGTH / back.rate);
@@ -111,7 +111,6 @@ export default function LOBGame() {
     const backE = backS + backDur - 1;
     return { excS, excE, excDur, excRate: exc.rate, excCost: exc.cost, excName: exc.name, pipeS, pipeE, pipeDur, pipeRate: pipe.rate, pipeCost: pipe.cost, pipeName: pipe.name, backS, backE, backDur, backRate: back.rate, backCost: back.cost, backName: back.name, end: Math.max(excE, pipeE, backE) };
   }, [r4Eq]);
-
   const r4Cost = useMemo(() => {
     const excC = r4.excDur * r4.excCost, pipeC = r4.pipeDur * r4.pipeCost, backC = r4.backDur * r4.backCost;
     const direct = MOB_COST + excC + pipeC + backC;
@@ -119,7 +118,6 @@ export default function LOBGame() {
     const profit = Math.round((direct + indirect) * PROFIT_RATE);
     return { direct, indirect, profit, total: direct + indirect + profit, excC, pipeC, backC };
   }, [r4]);
-
   const r5Calc = useMemo(() => {
     const excRate = r5Config.exc.small * 165 + r5Config.exc.standard * 220 + r5Config.exc.large * 330 || 1;
     const excCost = r5Config.exc.small * 900 + r5Config.exc.standard * 1200 + r5Config.exc.large * 1800;
@@ -129,7 +127,6 @@ export default function LOBGame() {
     const backCost = r5Config.back.small * 1400 + r5Config.back.standard * 1800 + r5Config.back.large * 2600;
     return { exc: { rate: excRate, cost: excCost }, pipe: { rate: pipeRate, cost: pipeCost }, back: { rate: backRate, cost: backCost } };
   }, [r5Config]);
-
   const r5 = useMemo(() => {
     const excDur = Math.ceil(PROJECT_LENGTH / r5Calc.exc.rate), pipeDur = Math.ceil(PROJECT_LENGTH / r5Calc.pipe.rate), backDur = Math.ceil(PROJECT_LENGTH / r5Calc.back.rate);
     const excS = MOB_DAYS + 1, excE = excS + excDur - 1;
@@ -139,7 +136,6 @@ export default function LOBGame() {
     const backE = backS + backDur - 1;
     return { excS, excE, excDur, excRate: r5Calc.exc.rate, excCost: r5Calc.exc.cost, pipeS, pipeE, pipeDur, pipeRate: r5Calc.pipe.rate, pipeCost: r5Calc.pipe.cost, backS, backE, backDur, backRate: r5Calc.back.rate, backCost: r5Calc.back.cost, end: Math.max(excE, pipeE, backE) };
   }, [r5Calc, r5Buffer]);
-
   const r5Cost = useMemo(() => {
     const excC = r5.excDur * r5.excCost, pipeC = r5.pipeDur * r5.pipeCost, backC = r5.backDur * r5.backCost;
     const direct = MOB_COST + excC + pipeC + backC;
@@ -147,7 +143,6 @@ export default function LOBGame() {
     const profit = Math.round((direct + indirect) * PROFIT_RATE);
     return { direct, indirect, profit, total: direct + indirect + profit, excC, pipeC, backC };
   }, [r5]);
-
   const genLOB = (schedules) => {
     const data = [];
     const maxDay = Math.max(...schedules.map(s => s.end || 0), 100) + 10;
@@ -165,7 +160,6 @@ export default function LOBGame() {
     }
     return data;
   };
-
   const nextRound = () => {
     const res = { round };
     if (round === 1) Object.assign(res, { ...r1Student });
@@ -176,13 +170,11 @@ export default function LOBGame() {
     setResults(p => ({ ...p, [round]: res }));
     setRound(round + 1);
   };
-
   const InputCell = ({ value, onChange, correct, submitted }) => {
     let bg = "bg-yellow-50 border-yellow-400";
     if (submitted) bg = parseInt(value) === correct ? "bg-green-100 border-green-500" : "bg-red-100 border-red-500";
     return <input type="number" value={value} onChange={onChange} className={`w-16 px-1 py-1 border-2 rounded text-center text-sm ${bg}`} />;
   };
-
   const BudgetTable = ({ cost, durExc, durPipe, durBack, costExc, costPipe, costBack }) => (
     <div className="grid grid-cols-2 gap-4 text-sm">
       <table className="w-full border"><tbody>
@@ -200,7 +192,6 @@ export default function LOBGame() {
       </tbody></table>
     </div>
   );
-
   // INTRO SCREEN
     if (round === 0) {
       return (
@@ -365,7 +356,6 @@ export default function LOBGame() {
         </div>
       );
     }
-
   // FINAL SCREEN
   if (round === 6) {
     const pass = results[5]?.pass;
@@ -381,7 +371,6 @@ export default function LOBGame() {
               <div>Cost: <span className={`font-bold ${results[5]?.cost <= TARGET_COST ? 'text-green-600' : 'text-red-600'}`}>${results[5]?.cost?.toLocaleString()}</span> <span className="text-gray-400">(limit: ≤${TARGET_COST.toLocaleString()})</span></div>
             </div>
           </div>
-
           <div className="mb-6">
             <h3 className="font-bold text-lg mb-3">📈 Round Summary</h3>
             <table className="w-full text-sm border">
@@ -395,7 +384,6 @@ export default function LOBGame() {
               </tbody>
             </table>
           </div>
-
           <div className="bg-blue-50 p-4 rounded-lg mb-6">
             <h3 className="font-bold text-lg mb-3">🎓 Key Learnings</h3>
             <ul className="space-y-2 text-sm">
@@ -406,15 +394,12 @@ export default function LOBGame() {
               <li><strong>R5:</strong> Using multiple equipment units increases both speed and cost.</li>
             </ul>
           </div>
-
           <button onClick={() => window.location.reload()} className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold">🔄 Play Again</button>
         </div>
       </div>
     );
   }
-
   const titles = { 1: 'Bar Chart', 2: 'LOB Analysis', 3: 'Buffer Analysis', 4: 'Rate Analysis', 5: 'Optimize for Constraints' };
-
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="bg-blue-900 text-white py-2 px-4 sticky top-0 z-10">
@@ -617,7 +602,7 @@ export default function LOBGame() {
             </div>
           )}
         </>)}
-
+        
         {/* R2: LOB Analysis */}
         {round === 2 && (<>
           <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
@@ -663,7 +648,6 @@ export default function LOBGame() {
           </>)}
           <button onClick={nextRound} disabled={!r2IsCorrect} className="w-full bg-green-600 text-white py-3 rounded-lg font-bold disabled:bg-gray-300">{r2IsCorrect ? 'Complete R2 → R3' : 'Answer correctly to proceed'}</button>
         </>)}
-
         {/* R3: Buffer Analysis */}
         {round === 3 && (<>
           <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded"><h3 className="font-bold">📋 R3: Buffer Analysis</h3><p className="text-sm">See how buffer affects duration.</p></div>
@@ -690,7 +674,6 @@ export default function LOBGame() {
           <div className="bg-yellow-50 p-4 rounded"><strong>💡 Key Insight:</strong> Buffer ↑ = Duration ↑, but Cost stays the same!</div>
           <button onClick={nextRound} className="w-full bg-green-600 text-white py-3 rounded-lg font-bold">Complete R3 → R4</button>
         </>)}
-
         {/* R4: Rate Analysis */}
         {round === 4 && (<>
           <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded"><h3 className="font-bold">📋 R4: Rate Analysis</h3><p className="text-sm">Select equipment type (1 unit each).</p></div>
@@ -723,7 +706,6 @@ export default function LOBGame() {
           </div>
           <button onClick={nextRound} className="w-full bg-green-600 text-white py-3 rounded-lg font-bold">Complete R4 → R5</button>
         </>)}
-
         {/* R5: Optimize for Constraints */}
         {round === 5 && (<>
           <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded"><h3 className="font-bold">📋 R5: Optimization</h3><p className="text-sm">Meet constraints: ≤{TARGET_DAYS} days and ≤${TARGET_COST.toLocaleString()}</p></div>
