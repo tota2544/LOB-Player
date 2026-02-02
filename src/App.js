@@ -61,10 +61,12 @@ function QuizStep({ dur, onComplete }) {
   const allCorrect =
     submitted.q1 && submitted.q2 && submitted.q3 &&
     isCorrect.q1 && isCorrect.q2 && isCorrect.q3;
-  
+
+  // ✅ Option A: allow continue after all 3 are checked (even if wrong)
   const allSubmitted = submitted.q1 && submitted.q2 && submitted.q3;
 
-  const handleSubmit = (questionId) => setSubmitted(prev => ({ ...prev, [questionId]: true }));
+  const handleSubmit = (questionId) =>
+    setSubmitted((prev) => ({ ...prev, [questionId]: true }));
 
   const getOptionClass = (questionId, optionValue) => {
     const isSelected = answers[questionId] === optionValue;
@@ -103,11 +105,11 @@ function QuizStep({ dur, onComplete }) {
           {[
             { value: 'a', label: 'Backfill → Pipe Laying → Excavation' },
             { value: 'b', label: 'Pipe Laying → Excavation → Backfill' },
-            { value: 'c', label: 'Excavation → Pipe Laying → Backfill' }
-          ].map(option => (
+            { value: 'c', label: 'Excavation → Pipe Laying → Backfill' },
+          ].map((option) => (
             <button
               key={option.value}
-              onClick={() => !submitted.q1 && setAnswers(prev => ({ ...prev, q1: option.value }))}
+              onClick={() => !submitted.q1 && setAnswers((prev) => ({ ...prev, q1: option.value }))}
               className={getOptionClass('q1', option.value)}
               disabled={submitted.q1}
             >
@@ -166,11 +168,11 @@ function QuizStep({ dur, onComplete }) {
           {[
             { value: 'a', label: `Excavation (${CREWS.exc.rate} ft/day)` },
             { value: 'b', label: `Pipe Laying (${CREWS.pipe.rate} ft/day)` },
-            { value: 'c', label: `Backfill (${CREWS.back.rate} ft/day)` }
-          ].map(option => (
+            { value: 'c', label: `Backfill (${CREWS.back.rate} ft/day)` },
+          ].map((option) => (
             <button
               key={option.value}
-              onClick={() => !submitted.q2 && setAnswers(prev => ({ ...prev, q2: option.value }))}
+              onClick={() => !submitted.q2 && setAnswers((prev) => ({ ...prev, q2: option.value }))}
               className={getOptionClass('q2', option.value)}
               disabled={submitted.q2}
             >
@@ -218,7 +220,7 @@ function QuizStep({ dur, onComplete }) {
           <input
             type="number"
             value={answers.q3}
-            onChange={(e) => setAnswers(prev => ({ ...prev, q3: e.target.value }))}
+            onChange={(e) => setAnswers((prev) => ({ ...prev, q3: e.target.value }))}
             disabled={submitted.q3}
             className={`w-24 px-3 py-2 border-2 rounded text-center font-bold text-lg
               ${submitted.q3 ? (isCorrect.q3 ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50') : 'border-gray-300 focus:border-blue-500'}`}
@@ -243,6 +245,7 @@ function QuizStep({ dur, onComplete }) {
         )}
       </div>
 
+      {/* ✅ Continue even if wrong (after all 3 checked) */}
       {allSubmitted && (
         <div
           className={`border-2 rounded-lg p-5 text-center ${
@@ -252,13 +255,11 @@ function QuizStep({ dur, onComplete }) {
           <h3 className="font-bold text-xl mb-2">
             {allCorrect ? 'All Questions Correct!' : 'Quiz Complete'}
           </h3>
-      
+
           <p className="mb-4 text-sm">
-            {allCorrect
-              ? "You're ready to create your schedule."
-              : 'You can continue, but review the corrections above.'}
+            {allCorrect ? "You're ready to create your schedule." : 'You can continue, but review the corrections above.'}
           </p>
-      
+
           <button
             onClick={onComplete}
             className="px-6 py-3 bg-green-600 text-white rounded-lg font-bold text-lg hover:bg-green-700 transition-all"
@@ -267,6 +268,9 @@ function QuizStep({ dur, onComplete }) {
           </button>
         </div>
       )}
+    </div>
+  );
+}
 
 function DraggableBarChart({ schedule, onScheduleChange, conflictStatus }) {
   const chartRef = useRef(null);
