@@ -236,46 +236,7 @@ export default function LOBGame() {
         
           <div className="overflow-x-auto">
             <table className="w-full text-sm font-bold table-auto">
-              <thead className="bg-blue-100">
-                <tr>
-                  <th className="px-3 py-3 text-left">Crew</th>
-                  <th className="px-3 py-3 text-left">Activity</th>
-                  <th className="px-3 py-3 text-left">Equipment</th>
-                  <th className="px-3 py-3 text-right">Daily Cost ($/day)</th>
-                  <th className="px-3 py-3 text-right">Productivity Rate (ft/day)</th>
-                </tr>
-              </thead>
-        
-              <tbody>
-                <tr className="bg-blue-50 border-b">
-                  <td className="px-3 py-3 text-blue-700">Crew A</td>
-                  <td className="px-3 py-3">{CREWS.exc.name}</td>
-                  <td className="px-3 py-3">{CREWS.exc.equipment}</td>
-                  <td className="px-3 py-3 text-right">{CREWS.exc.cost}</td>
-                  <td className="px-3 py-3 text-right">{CREWS.exc.rate}</td>
-                </tr>
-        
-                <tr className="bg-green-50 border-b">
-                  <td className="px-3 py-3 text-green-700">Crew B</td>
-                  <td className="px-3 py-3">{CREWS.pipe.name}</td>
-                  <td className="px-3 py-3">{CREWS.pipe.equipment}</td>
-                  <td className="px-3 py-3 text-right">{CREWS.pipe.cost}</td>
-                  <td className="px-3 py-3 text-right">{CREWS.pipe.rate}</td>
-                </tr>
-        
-                <tr className="bg-orange-50">
-                  <td className="px-3 py-3 text-orange-700">Crew C</td>
-                  <td className="px-3 py-3">{CREWS.back.name}</td>
-                  <td className="px-3 py-3">{CREWS.back.equipment}</td>
-                  <td className="px-3 py-3 text-right">{CREWS.back.cost}</td>
-                  <td className="px-3 py-3 text-right">{CREWS.back.rate}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        ``
-                  {/* Collapsible Crew Cards (Option B) */}
+                                    {/* Collapsible Crew Cards (Option B) */}
           <div className="mt-4 space-y-3">
             {/* Crew A */}
             <details className="group rounded-lg border border-blue-200 bg-blue-50/60 p-4">
@@ -337,6 +298,46 @@ export default function LOBGame() {
               </p>
             </details>
           </div>
+              <thead className="bg-blue-100">
+                <tr>
+                  <th className="px-3 py-3 text-left">Crew</th>
+                  <th className="px-3 py-3 text-left">Activity</th>
+                  <th className="px-3 py-3 text-left">Equipment</th>
+                  <th className="px-3 py-3 text-right">Daily Cost ($/day)</th>
+                  <th className="px-3 py-3 text-right">Productivity Rate (ft/day)</th>
+                </tr>
+              </thead>
+        
+              <tbody>
+                <tr className="bg-blue-50 border-b">
+                  <td className="px-3 py-3 text-blue-700">Crew A</td>
+                  <td className="px-3 py-3">{CREWS.exc.name}</td>
+                  <td className="px-3 py-3">{CREWS.exc.equipment}</td>
+                  <td className="px-3 py-3 text-right">{CREWS.exc.cost}</td>
+                  <td className="px-3 py-3 text-right">{CREWS.exc.rate}</td>
+                </tr>
+        
+                <tr className="bg-green-50 border-b">
+                  <td className="px-3 py-3 text-green-700">Crew B</td>
+                  <td className="px-3 py-3">{CREWS.pipe.name}</td>
+                  <td className="px-3 py-3">{CREWS.pipe.equipment}</td>
+                  <td className="px-3 py-3 text-right">{CREWS.pipe.cost}</td>
+                  <td className="px-3 py-3 text-right">{CREWS.pipe.rate}</td>
+                </tr>
+        
+                <tr className="bg-orange-50">
+                  <td className="px-3 py-3 text-orange-700">Crew C</td>
+                  <td className="px-3 py-3">{CREWS.back.name}</td>
+                  <td className="px-3 py-3">{CREWS.back.equipment}</td>
+                  <td className="px-3 py-3 text-right">{CREWS.back.cost}</td>
+                  <td className="px-3 py-3 text-right">{CREWS.back.rate}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        ``
+
 
           <div className="bg-white rounded-xl p-5">
             <h2 className="text-xl font-bold text-blue-900 mb-4">🚀 Ready to Play?</h2>
