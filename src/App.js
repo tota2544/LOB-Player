@@ -239,10 +239,6 @@ export default function LOBGame() {
                   <div className="text-gray-500">Mobilization</div>
                   <div className="font-bold">{MOB_DAYS} days — ${MOB_COST.toLocaleString()}</div>
                 </div>
-                <div className="bg-blue-50 p-3 rounded">
-                  <div className="text-gray-500">Start Buffer</div>
-                  <div className="font-bold">{DEFAULT_BUFFER} days</div>
-                </div>
               </div>
             </div>
   
