@@ -202,156 +202,173 @@ export default function LOBGame() {
   );
 
   // INTRO SCREEN
-  if (round === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 p-4">
-        <div className="max-w-4xl mx-auto space-y-4">
-          <div className="text-center text-white mb-6"><h1 className="text-4xl font-bold">🎮 LOB SIMULATION GAME</h1><p className="text-blue-200">5-Round Educational Simulation</p></div>
-          
-          <div className="bg-white rounded-xl p-5">
-            <h2 className="text-xl font-bold text-blue-900 border-b pb-2 mb-4">📋 PROJECT OVERVIEW</h2>
-                        {/* Project Overview Introduction */}
-            <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-              <p className="text-sm leading-relaxed text-blue-900">
-                This simulation places you in the role of a construction planner responsible for scheduling
-                a major water pipeline project. Over five rounds, you will explore how crew productivity,
-                spacing (buffers), and activity sequencing influence progress using the Line of Balance (LOB)
-                method. Your goal is to build a feasible schedule, avoid crew conflicts, and optimize both
-                duration and cost—just like a real project engineer.
-              </p>
+    if (round === 0) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 p-4">
+          <div className="max-w-4xl mx-auto space-y-4">
+            <div className="text-center text-white mb-6">
+              <h1 className="text-4xl font-bold">🎮 LOB SIMULATION GAME</h1>
+              <p className="text-blue-200">5-Round Educational Simulation</p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-              <div className="bg-blue-50 p-3 rounded"><div className="text-gray-500">Project</div><div className="font-bold">College Station Water Pipeline</div></div>
-              <div className="bg-blue-50 p-3 rounded"><div className="text-gray-500">Pipeline Type</div><div className="font-bold">24" Prestressed Concrete Cylinder Pipe</div></div>
-              <div className="bg-blue-50 p-3 rounded"><div className="text-gray-500">Total Length</div><div className="font-bold text-xl">{PROJECT_LENGTH.toLocaleString()} ft</div></div>
-              <div className="bg-blue-50 p-3 rounded"><div className="text-gray-500">Mobilization</div><div className="font-bold">{MOB_DAYS} days — ${MOB_COST.toLocaleString()}</div></div>
-              <div className="bg-blue-50 p-3 rounded"><div className="text-gray-500">Start Buffer</div><div className="font-bold">{DEFAULT_BUFFER} days</div></div>
+            
+            <div className="bg-white rounded-xl p-5">
+              <h2 className="text-xl font-bold text-blue-900 border-b pb-2 mb-4">📋 PROJECT OVERVIEW</h2>
+              <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <p className="text-sm leading-relaxed text-blue-900">
+                  This simulation places you in the role of a construction planner responsible for scheduling
+                  a major water pipeline project. Over five rounds, you will explore how crew productivity,
+                  spacing (buffers), and activity sequencing influence progress using the Line of Balance (LOB)
+                  method. Your goal is to build a feasible schedule, avoid crew conflicts, and optimize both
+                  duration and cost—just like a real project engineer.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                <div className="bg-blue-50 p-3 rounded">
+                  <div className="text-gray-500">Project</div>
+                  <div className="font-bold">College Station Water Pipeline</div>
+                </div>
+                <div className="bg-blue-50 p-3 rounded">
+                  <div className="text-gray-500">Pipeline Type</div>
+                  <div className="font-bold">24" Prestressed Concrete Cylinder Pipe</div>
+                </div>
+                <div className="bg-blue-50 p-3 rounded">
+                  <div className="text-gray-500">Total Length</div>
+                  <div className="font-bold text-xl">{PROJECT_LENGTH.toLocaleString()} ft</div>
+                </div>
+                <div className="bg-blue-50 p-3 rounded">
+                  <div className="text-gray-500">Mobilization</div>
+                  <div className="font-bold">{MOB_DAYS} days — ${MOB_COST.toLocaleString()}</div>
+                </div>
+                <div className="bg-blue-50 p-3 rounded">
+                  <div className="text-gray-500">Start Buffer</div>
+                  <div className="font-bold">{DEFAULT_BUFFER} days</div>
+                </div>
+              </div>
             </div>
-          </div>
-      
-        <div className="bg-white rounded-xl p-5">
-          <h2 className="text-xl font-bold text-blue-900 border-b pb-2 mb-4">
-            👷 CREW DEFINITIONS
-          </h2>
-        
-          {/* Crew Section Introduction */}
-          <div className="mt-4 mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <p className="text-sm leading-relaxed text-blue-900">
-              This project uses three sequential pipeline crews—Excavation, Pipe Laying, and Backfill—each with its
-              own productivity and equipment. Understanding their roles helps you plan start times, avoid overlap,
-              and create a conflict‑free Line of Balance (LOB) schedule.
-            </p>
-          </div>
-        
-          {/* Collapsible Cards */}
-          <div className="space-y-3">
-            {/* Crew A */}
-            <details className="group rounded-lg border border-blue-200 bg-blue-50 p-4">
-              <summary className="flex cursor-pointer items-center justify-between list-none">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-700">
-                    ⛏️
-                  </div>
-                  <div>
-                    <div className="font-bold text-blue-900">Crew A — Excavation &amp; Bedding</div>
-                    <div className="text-xs text-blue-800/70">Uses Excavator</div>
-                  </div>
-                </div>
-                <span className="text-blue-900/70 transition-transform group-open:rotate-180">▾</span>
-              </summary>
-        
-              <p className="mt-3 text-sm leading-relaxed text-blue-900">
-                Crew A uses an <strong>Excavator</strong> to dig the trench and prepare the bedding.
-                As the first crew in sequence, it sets the pace for all other crews and must stay ahead
-                to avoid delaying pipeline installation.
-              </p>
-            </details>
-        
-            {/* Crew B */}
-            <details className="group rounded-lg border border-green-200 bg-green-50 p-4">
-              <summary className="flex cursor-pointer items-center justify-between list-none">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-100 text-green-700">
-                    🔧
-                  </div>
-                  <div>
-                    <div className="font-bold text-green-900">Crew B — Pipe Laying &amp; Alignment</div>
-                    <div className="text-xs text-green-800/70">Uses Mobile Crane</div>
-                  </div>
-                </div>
-                <span className="text-green-900/70 transition-transform group-open:rotate-180">▾</span>
-              </summary>
-        
-              <p className="mt-3 text-sm leading-relaxed text-green-900">
-                Crew B uses a <strong>Mobile Crane</strong> to lift and align pipe sections in the trench prepared by Crew A.
-                They progress more slowly, so maintaining proper spacing helps prevent bottlenecks in the workflow.
-              </p>
-            </details>
-        
-            {/* Crew C */}
-            <details className="group rounded-lg border border-orange-200 bg-orange-50 p-4">
-              <summary className="flex cursor-pointer items-center justify-between list-none">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 text-orange-700">
-                    🚜
-                  </div>
-                  <div>
-                    <div className="font-bold text-orange-900">Crew C — Backfill &amp; Compaction</div>
-                    <div className="text-xs text-orange-800/70">Uses Backfill Set</div>
-                  </div>
-                </div>
-                <span className="text-orange-900/70 transition-transform group-open:rotate-180">▾</span>
-              </summary>
-        
-              <p className="mt-3 text-sm leading-relaxed text-orange-900">
-                Crew C uses a <strong>Backfill Set</strong> (Excavator + Compactor) to place and compact soil over installed pipes.
-                They often work faster than pipe laying, so proper spacing prevents them from catching up and causing conflicts.
-              </p>
-            </details>
-          </div>
-        
-          {/* Crew Table */}
-          <div className="mt-5 overflow-x-auto">
-            <table className="w-full text-sm font-bold table-auto">
-              <thead className="bg-blue-100">
-                <tr>
-                  <th className="px-3 py-3 text-left">Crew</th>
-                  <th className="px-3 py-3 text-left">Activity</th>
-                  <th className="px-3 py-3 text-left">Equipment</th>
-                  <th className="px-3 py-3 text-right">Daily Cost ($/day)</th>
-                  <th className="px-3 py-3 text-right">Production Rate (ft/day)</th>
-                </tr>
-              </thead>
-        
-              <tbody>
-                <tr className="bg-blue-50 border-b">
-                  <td className="px-3 py-3 text-blue-700">Crew A</td>
-                  <td className="px-3 py-3">{CREWS.exc.name}</td>
-                  <td className="px-3 py-3">{CREWS.exc.equipment}</td>
-                  <td className="px-3 py-3 text-right">{CREWS.exc.cost}</td>
-                  <td className="px-3 py-3 text-right">{CREWS.exc.rate}</td>
-                </tr>
-        
-                <tr className="bg-green-50 border-b">
-                  <td className="px-3 py-3 text-green-700">Crew B</td>
-                  <td className="px-3 py-3">{CREWS.pipe.name}</td>
-                  <td className="px-3 py-3">{CREWS.pipe.equipment}</td>
-                  <td className="px-3 py-3 text-right">{CREWS.pipe.cost}</td>
-                  <td className="px-3 py-3 text-right">{CREWS.pipe.rate}</td>
-                </tr>
-        
-                <tr className="bg-orange-50">
-                  <td className="px-3 py-3 text-orange-700">Crew C</td>
-                  <td className="px-3 py-3">{CREWS.back.name}</td>
-                  <td className="px-3 py-3">{CREWS.back.equipment}</td>
-                  <td className="px-3 py-3 text-right">{CREWS.back.cost}</td>
-                  <td className="px-3 py-3 text-right">{CREWS.back.rate}</td>
-                </tr>
-              </tbody>
-            </table>
+  
+            <div className="bg-white rounded-xl p-5">
+              <h2 className="text-xl font-bold text-blue-900 border-b pb-2 mb-4">👷 CREW DEFINITIONS</h2>
+              <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <p className="text-sm leading-relaxed text-blue-900">
+                  This project uses three sequential pipeline crews—Excavation, Pipe Laying, and Backfill—each with its
+                  own productivity and equipment. Understanding their roles helps you plan start times, avoid overlap,
+                  and create a conflict-free Line of Balance (LOB) schedule.
+                </p>
+              </div>
+              
+              <div className="space-y-3">
+                <details className="group rounded-lg border border-blue-200 bg-blue-50 p-4">
+                  <summary className="flex cursor-pointer items-center justify-between list-none">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-700">⛏️</div>
+                      <div>
+                        <div className="font-bold text-blue-900">Crew A — Excavation & Bedding</div>
+                        <div className="text-xs text-blue-800/70">Uses Excavator</div>
+                      </div>
+                    </div>
+                    <span className="text-blue-900/70 transition-transform group-open:rotate-180">▾</span>
+                  </summary>
+                  <p className="mt-3 text-sm leading-relaxed text-blue-900">
+                    Crew A uses an <strong>Excavator</strong> to dig the trench and prepare the bedding.
+                    As the first crew in sequence, it sets the pace for all other crews and must stay ahead
+                    to avoid delaying pipeline installation.
+                  </p>
+                </details>
+                
+                <details className="group rounded-lg border border-green-200 bg-green-50 p-4">
+                  <summary className="flex cursor-pointer items-center justify-between list-none">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-100 text-green-700">🔧</div>
+                      <div>
+                        <div className="font-bold text-green-900">Crew B — Pipe Laying & Alignment</div>
+                        <div className="text-xs text-green-800/70">Uses Mobile Crane</div>
+                      </div>
+                    </div>
+                    <span className="text-green-900/70 transition-transform group-open:rotate-180">▾</span>
+                  </summary>
+                  <p className="mt-3 text-sm leading-relaxed text-green-900">
+                    Crew B uses a <strong>Mobile Crane</strong> to lift and align pipe sections in the trench prepared by Crew A.
+                    They progress more slowly, so maintaining proper spacing helps prevent bottlenecks in the workflow.
+                  </p>
+                </details>
+                
+                <details className="group rounded-lg border border-orange-200 bg-orange-50 p-4">
+                  <summary className="flex cursor-pointer items-center justify-between list-none">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 text-orange-700">🚜</div>
+                      <div>
+                        <div className="font-bold text-orange-900">Crew C — Backfill & Compaction</div>
+                        <div className="text-xs text-orange-800/70">Uses Backfill Set</div>
+                      </div>
+                    </div>
+                    <span className="text-orange-900/70 transition-transform group-open:rotate-180">▾</span>
+                  </summary>
+                  <p className="mt-3 text-sm leading-relaxed text-orange-900">
+                    Crew C uses a <strong>Backfill Set</strong> (Excavator + Compactor) to place and compact soil over installed pipes.
+                    They often work faster than pipe laying, so proper spacing prevents them from catching up and causing conflicts.
+                  </p>
+                </details>
+              </div>
+              
+              <div className="mt-5 overflow-x-auto">
+                <table className="w-full text-sm font-bold table-auto">
+                  <thead className="bg-blue-100">
+                    <tr>
+                      <th className="px-3 py-3 text-left">Crew</th>
+                      <th className="px-3 py-3 text-left">Activity</th>
+                      <th className="px-3 py-3 text-left">Equipment</th>
+                      <th className="px-3 py-3 text-right">Daily Cost ($/day)</th>
+                      <th className="px-3 py-3 text-right">Production Rate (ft/day)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="bg-blue-50 border-b">
+                      <td className="px-3 py-3 text-blue-700">Crew A</td>
+                      <td className="px-3 py-3">{CREWS.exc.name}</td>
+                      <td className="px-3 py-3">{CREWS.exc.equipment}</td>
+                      <td className="px-3 py-3 text-right">{CREWS.exc.cost}</td>
+                      <td className="px-3 py-3 text-right">{CREWS.exc.rate}</td>
+                    </tr>
+                    <tr className="bg-green-50 border-b">
+                      <td className="px-3 py-3 text-green-700">Crew B</td>
+                      <td className="px-3 py-3">{CREWS.pipe.name}</td>
+                      <td className="px-3 py-3">{CREWS.pipe.equipment}</td>
+                      <td className="px-3 py-3 text-right">{CREWS.pipe.cost}</td>
+                      <td className="px-3 py-3 text-right">{CREWS.pipe.rate}</td>
+                    </tr>
+                    <tr className="bg-orange-50">
+                      <td className="px-3 py-3 text-orange-700">Crew C</td>
+                      <td className="px-3 py-3">{CREWS.back.name}</td>
+                      <td className="px-3 py-3">{CREWS.back.equipment}</td>
+                      <td className="px-3 py-3 text-right">{CREWS.back.cost}</td>
+                      <td className="px-3 py-3 text-right">{CREWS.back.rate}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+  
+            <div className="bg-white rounded-xl p-5">
+              <h2 className="text-xl font-bold text-blue-900 mb-4">🚀 Ready to Play?</h2>
+              <input 
+                type="text" 
+                placeholder="Enter your name" 
+                value={name} 
+                onChange={(e) => setName(e.target.value)} 
+                className="w-full px-4 py-3 border-2 rounded-lg mb-4 text-lg" 
+              />
+              <button 
+                onClick={() => name && setRound(1)} 
+                disabled={!name} 
+                className="w-full bg-blue-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-blue-700 disabled:bg-gray-300"
+              >
+                Start Game →
+              </button>
+            </div>
           </div>
         </div>
-
+      );
+    }
 
   // FINAL SCREEN
   if (round === 6) {
