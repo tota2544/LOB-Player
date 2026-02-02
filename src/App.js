@@ -835,8 +835,70 @@ export default function LOBGame() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-5">
-            <h2 className="text-xl font-bold text-blue-900 border-b pb-2 mb-4">👷 CREW DEFINITIONS</h2>
+            <div className="bg-white rounded-xl p-5">
+              <h2 className="text-xl font-bold text-blue-900 border-b pb-2 mb-4">👷 CREW DEFINITIONS</h2>
+              <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <p className="text-sm leading-relaxed text-blue-900">
+                  This project uses three sequential pipeline crews—Excavation, Pipe Laying, and Backfill—each with its
+                  own productivity and equipment. Understanding their roles helps you plan start times, avoid overlap,
+                  and create a conflict-free Line of Balance (LOB) schedule.
+                </p>
+              </div>
+              
+              <div className="space-y-3">
+                <details className="group rounded-lg border border-blue-200 bg-blue-50 p-4">
+                  <summary className="flex cursor-pointer items-center justify-between list-none">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-700">⛏️</div>
+                      <div>
+                        <div className="font-bold text-blue-900">Crew A — Excavation & Bedding</div>
+                        <div className="text-xs text-blue-800/70">Uses Excavator</div>
+                      </div>
+                    </div>
+                    <span className="text-blue-900/70 transition-transform group-open:rotate-180">▾</span>
+                  </summary>
+                  <p className="mt-3 text-sm leading-relaxed text-blue-900">
+                    Crew A uses an <strong>Excavator</strong> to dig the trench and prepare the bedding.
+                    As the first crew in sequence, it sets the pace for all other crews and must stay ahead
+                    to avoid delaying pipeline installation.
+                  </p>
+                </details>
+                
+                <details className="group rounded-lg border border-green-200 bg-green-50 p-4">
+                  <summary className="flex cursor-pointer items-center justify-between list-none">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-100 text-green-700">🔧</div>
+                      <div>
+                        <div className="font-bold text-green-900">Crew B — Pipe Laying & Alignment</div>
+                        <div className="text-xs text-green-800/70">Uses Mobile Crane</div>
+                      </div>
+                    </div>
+                    <span className="text-green-900/70 transition-transform group-open:rotate-180">▾</span>
+                  </summary>
+                  <p className="mt-3 text-sm leading-relaxed text-green-900">
+                    Crew B uses a <strong>Mobile Crane</strong> to lift and align pipe sections in the trench prepared by Crew A.
+                    They progress more slowly, so maintaining proper spacing helps prevent bottlenecks in the workflow.
+                  </p>
+                </details>
+                
+                <details className="group rounded-lg border border-orange-200 bg-orange-50 p-4">
+                  <summary className="flex cursor-pointer items-center justify-between list-none">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 text-orange-700">🚜</div>
+                      <div>
+                        <div className="font-bold text-orange-900">Crew C — Backfill & Compaction</div>
+                        <div className="text-xs text-orange-800/70">Uses Backfill Set</div>
+                      </div>
+                    </div>
+                    <span className="text-orange-900/70 transition-transform group-open:rotate-180">▾</span>
+                  </summary>
+                  <p className="mt-3 text-sm leading-relaxed text-orange-900">
+                    Crew C uses a <strong>Backfill Set</strong> (Excavator + Compactor) to place and compact soil over installed pipes.
+                    They often work faster than pipe laying, so proper spacing prevents them from catching up and causing conflicts.
+                  </p>
+                </details>
+              </div>
+              
             <div className="mt-5 overflow-x-auto">
               <table className="w-full text-sm font-bold table-auto">
                 <thead className="bg-blue-100">
