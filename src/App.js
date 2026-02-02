@@ -61,6 +61,8 @@ function QuizStep({ dur, onComplete }) {
   const allCorrect =
     submitted.q1 && submitted.q2 && submitted.q3 &&
     isCorrect.q1 && isCorrect.q2 && isCorrect.q3;
+  
+  const allSubmitted = submitted.q1 && submitted.q2 && submitted.q3;
 
   const handleSubmit = (questionId) => setSubmitted(prev => ({ ...prev, [questionId]: true }));
 
@@ -241,10 +243,22 @@ function QuizStep({ dur, onComplete }) {
         )}
       </div>
 
-      {allCorrect && (
-        <div className="bg-green-50 border-2 border-green-500 rounded-lg p-5 text-center">
-          <h3 className="font-bold text-xl text-green-800 mb-2">All Questions Correct!</h3>
-          <p className="text-green-700 mb-4">You're ready to create your schedule.</p>
+      {allSubmitted && (
+        <div
+          className={`border-2 rounded-lg p-5 text-center ${
+            allCorrect ? 'bg-green-50 border-green-500' : 'bg-yellow-50 border-yellow-500'
+          }`}
+        >
+          <h3 className="font-bold text-xl mb-2">
+            {allCorrect ? 'All Questions Correct!' : 'Quiz Complete'}
+          </h3>
+      
+          <p className="mb-4 text-sm">
+            {allCorrect
+              ? "You're ready to create your schedule."
+              : 'You can continue, but review the corrections above.'}
+          </p>
+      
           <button
             onClick={onComplete}
             className="px-6 py-3 bg-green-600 text-white rounded-lg font-bold text-lg hover:bg-green-700 transition-all"
@@ -253,9 +267,6 @@ function QuizStep({ dur, onComplete }) {
           </button>
         </div>
       )}
-    </div>
-  );
-}
 
 function DraggableBarChart({ schedule, onScheduleChange, conflictStatus }) {
   const chartRef = useRef(null);
