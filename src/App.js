@@ -427,41 +427,195 @@ export default function LOBGame() {
       <div className="bg-white border-b"><div className="max-w-5xl mx-auto px-4 py-2 flex gap-1">{[1,2,3,4,5].map(r => (<div key={r} className={`flex-1 h-2 rounded ${r < round ? 'bg-green-500' : r === round ? 'bg-blue-500' : 'bg-gray-200'}`} />))}</div></div>
       <div className="max-w-5xl mx-auto p-4 space-y-4">
         
-        {/* R1: Bar Chart */}
+        {/* R1: Bar Chart - Improved with Quiz + Interactive Scheduler */}
         {round === 1 && (<>
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-            <h3 className="font-bold">📋 R1: Create a Bar Chart Schedule</h3>
-            <p className="text-sm text-gray-600">Excavation must start Day 15 (after mobilization). Enter Start day for other activities.</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="font-bold mb-2">📐 Formulas</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="bg-blue-50 p-3 rounded"><strong>Duration</strong> = ROUNDUP({PROJECT_LENGTH.toLocaleString()} ÷ Daily Production Rate)</div>
-              <div className="bg-green-50 p-3 rounded"><strong>End</strong> = Start + Duration - 1</div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="font-bold mb-3">📝 Schedule Table</h3>
-            <table className="w-full text-sm border">
-              <thead className="bg-gray-100"><tr><th className="px-2 py-2 border">Activity</th><th className="px-2 py-2 border">Rate (ft/day)</th><th className="px-2 py-2 border">Duration (days)</th><th className="px-2 py-2 border bg-yellow-50">Start (day)</th><th className="px-2 py-2 border">End (day)</th></tr></thead>
-              <tbody>
-                <tr className="bg-gray-50"><td className="px-2 py-2 border">Mobilization</td><td className="px-2 py-2 border text-center">-</td><td className="px-2 py-2 border text-center">{MOB_DAYS}</td><td className="px-2 py-2 border text-center">1</td><td className="px-2 py-2 border text-center">{MOB_DAYS}</td></tr>
-                <tr className="text-blue-700"><td className="px-2 py-2 border font-medium">Excavation & Bedding</td><td className="px-2 py-2 border text-center">{CREWS.exc.rate}</td><td className="px-2 py-2 border text-center">{dur.exc}</td><td className="px-2 py-2 border text-center"><span className="bg-blue-100 px-2 py-1 rounded font-bold">{MOB_DAYS + 1}</span></td><td className="px-2 py-2 border text-center font-bold">{r1Student.excE}</td></tr>
-                <tr className="text-green-700"><td className="px-2 py-2 border font-medium">Pipe Laying & Alignment</td><td className="px-2 py-2 border text-center">{CREWS.pipe.rate}</td><td className="px-2 py-2 border text-center">{dur.pipe}</td><td className="px-2 py-2 border text-center"><input type="number" value={r1Input.pipeS} onChange={(e) => setR1Input({...r1Input, pipeS: e.target.value})} onBlur={(e) => setR1Input({...r1Input, pipeS: e.target.value})} className="w-16 px-1 py-1 border-2 rounded text-center bg-yellow-50 border-yellow-400" /></td><td className="px-2 py-2 border text-center font-bold">{r1Student.pipeE || '-'}</td></tr>
-                <tr className="text-orange-700"><td className="px-2 py-2 border font-medium">Backfill & Compaction</td><td className="px-2 py-2 border text-center">{CREWS.back.rate}</td><td className="px-2 py-2 border text-center">{dur.back}</td><td className="px-2 py-2 border text-center"><input type="number" value={r1Input.backS} onChange={(e) => setR1Input({...r1Input, backS: e.target.value})} onBlur={(e) => setR1Input({...r1Input, backS: e.target.value})} className="w-16 px-1 py-1 border-2 rounded text-center bg-yellow-50 border-yellow-400" /></td><td className="px-2 py-2 border text-center font-bold">{r1Student.backE || '-'}</td></tr>
-              </tbody>
-            </table>
-            {r1Student.end > 0 && <div className="mt-3 text-center">Project End: <strong className="text-2xl text-blue-600">{r1Student.end} days</strong></div>}
-          </div>
-          {r1IsValid && (
-            <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="font-bold mb-3">📊 Bar Chart (Gantt)</h3>
-              <div className="space-y-2">
-                {[{ name: 'Mobilization', s: 1, e: MOB_DAYS, c: 'bg-gray-400' },{ name: 'Excavation & Bedding', s: r1Student.excS, e: r1Student.excE, c: 'bg-blue-500' },{ name: 'Pipe Laying & Alignment', s: r1Student.pipeS, e: r1Student.pipeE, c: 'bg-green-500' },{ name: 'Backfill & Compaction', s: r1Student.backS, e: r1Student.backE, c: 'bg-orange-500' }].map((bar, i) => (<div key={i} className="flex items-center gap-2"><div className="w-24 text-xs text-right">{bar.name}</div><div className="flex-1 h-6 bg-gray-100 rounded relative">{bar.s > 0 && bar.e > 0 && (<div className={`absolute h-full ${bar.c} rounded text-white text-xs flex items-center justify-center`} style={{ left: `${(bar.s/150)*100}%`, width: `${Math.max(((bar.e-bar.s+1)/150)*100,3)}%` }}>{bar.s}-{bar.e}</div>)}</div></div>))}
+          {/* Step indicator */}
+          <div className="bg-white rounded-lg shadow p-3 mb-4">
+            <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${r1Step === 1 ? 'bg-blue-100 text-blue-800' : allQuizCorrect ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
+                {allQuizCorrect ? '✅' : '1️⃣'} Knowledge Quiz
+              </div>
+              <span className="text-gray-400">→</span>
+              <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${r1Step === 2 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-500'}`}>
+                2️⃣ Interactive Scheduler
               </div>
             </div>
+          </div>
+          {/* STEP 1: Quiz */}
+          {r1Step === 1 && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                <h3 className="font-bold text-lg">📚 Step 1: Knowledge Check</h3>
+                <p className="text-sm text-gray-600 mt-1">Before creating your schedule, answer these questions to confirm you understand the project basics.</p>
+              </div>
+              {/* Q1: Activity Sequence */}
+              <div className="bg-white rounded-lg shadow p-5">
+                <div className="flex items-start gap-3 mb-4">
+                  <span className="bg-blue-100 text-blue-800 font-bold px-3 py-1 rounded-full text-sm">Q1</span>
+                  <div>
+                    <h4 className="font-bold">What is the correct sequence of activities?</h4>
+                    <p className="text-sm text-gray-500">Select the order in which crews must work on the pipeline.</p>
+                  </div>
+                </div>
+                <div className="space-y-2 mb-4">
+                  {[
+                    { value: 'a', label: 'Backfill → Pipe Laying → Excavation' },
+                    { value: 'b', label: 'Pipe Laying → Excavation → Backfill' },
+                    { value: 'c', label: 'Excavation → Pipe Laying → Backfill' }
+                  ].map(option => (
+                    <button
+                      key={option.value}
+                      onClick={() => !quizSubmitted.q1 && setQuizAnswers(prev => ({ ...prev, q1: option.value }))}
+                      disabled={quizSubmitted.q1}
+                      className={`block w-full p-3 rounded border-2 text-left transition-all ${
+                        !quizSubmitted.q1 
+                          ? (quizAnswers.q1 === option.value ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300')
+                          : (option.value === 'c' ? 'border-green-500 bg-green-50' : (quizAnswers.q1 === option.value ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-gray-50 opacity-50'))
+                      }`}
+                    >
+                      <span className="font-medium">{option.value.toUpperCase()})</span> {option.label}
+                      {quizSubmitted.q1 && option.value === 'c' && <span className="ml-2 text-green-600">✓</span>}
+                    </button>
+                  ))}
+                </div>
+                {!quizSubmitted.q1 ? (
+                  <button onClick={() => setQuizSubmitted(prev => ({ ...prev, q1: true }))} disabled={!quizAnswers.q1} className={`px-4 py-2 rounded font-bold ${quizAnswers.q1 ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Check Answer</button>
+                ) : (
+                  <div className={`p-3 rounded ${quizCorrect.q1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {quizCorrect.q1 ? '✅ Correct! You must dig before laying pipe, and lay pipe before backfilling.' : '❌ Incorrect. Think about it: you cannot lay pipe without digging a trench first.'}
+                  </div>
+                )}
+              </div>
+              {/* Q2: Slowest Crew */}
+              <div className="bg-white rounded-lg shadow p-5">
+                <div className="flex items-start gap-3 mb-4">
+                  <span className="bg-blue-100 text-blue-800 font-bold px-3 py-1 rounded-full text-sm">Q2</span>
+                  <div>
+                    <h4 className="font-bold">Which crew is the SLOWEST?</h4>
+                    <p className="text-sm text-gray-500">Compare the production rates below.</p>
+                  </div>
+                </div>
+                <div className="bg-gray-50 rounded p-3 mb-4">
+                  <table className="w-full text-sm">
+                    <thead><tr className="text-left text-gray-500"><th className="pb-2">Crew</th><th className="pb-2 text-right">Rate (ft/day)</th><th className="pb-2 text-right">Duration (days)</th></tr></thead>
+                    <tbody>
+                      <tr><td>⛏️ Excavation</td><td className="text-right font-mono">220</td><td className="text-right font-mono">{dur.exc}</td></tr>
+                      <tr><td>🔧 Pipe Laying</td><td className="text-right font-mono">180</td><td className="text-right font-mono">{dur.pipe}</td></tr>
+                      <tr><td>🚜 Backfill</td><td className="text-right font-mono">250</td><td className="text-right font-mono">{dur.back}</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div className="space-y-2 mb-4">
+                  {[
+                    { value: 'a', label: 'Excavation (220 ft/day)' },
+                    { value: 'b', label: 'Pipe Laying (180 ft/day)' },
+                    { value: 'c', label: 'Backfill (250 ft/day)' }
+                  ].map(option => (
+                    <button
+                      key={option.value}
+                      onClick={() => !quizSubmitted.q2 && setQuizAnswers(prev => ({ ...prev, q2: option.value }))}
+                      disabled={quizSubmitted.q2}
+                      className={`block w-full p-3 rounded border-2 text-left transition-all ${
+                        !quizSubmitted.q2 
+                          ? (quizAnswers.q2 === option.value ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300')
+                          : (option.value === 'b' ? 'border-green-500 bg-green-50' : (quizAnswers.q2 === option.value ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-gray-50 opacity-50'))
+                      }`}
+                    >
+                      <span className="font-medium">{option.value.toUpperCase()})</span> {option.label}
+                      {quizSubmitted.q2 && option.value === 'b' && <span className="ml-2 text-green-600">✓ SLOWEST</span>}
+                    </button>
+                  ))}
+                </div>
+                {!quizSubmitted.q2 ? (
+                  <button onClick={() => setQuizSubmitted(prev => ({ ...prev, q2: true }))} disabled={!quizAnswers.q2} className={`px-4 py-2 rounded font-bold ${quizAnswers.q2 ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Check Answer</button>
+                ) : (
+                  <div className={`p-3 rounded ${quizCorrect.q2 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {quizCorrect.q2 ? '✅ Correct! Pipe Laying at 180 ft/day is the slowest. This will be important for scheduling!' : '❌ Incorrect. The slowest crew has the LOWEST production rate (ft/day).'}
+                  </div>
+                )}
+              </div>
+              {/* Q3: Duration Calculation */}
+              <div className="bg-white rounded-lg shadow p-5">
+                <div className="flex items-start gap-3 mb-4">
+                  <span className="bg-blue-100 text-blue-800 font-bold px-3 py-1 rounded-full text-sm">Q3</span>
+                  <div>
+                    <h4 className="font-bold">What is Backfill's duration?</h4>
+                    <p className="text-sm text-gray-500">Calculate using the formula below.</p>
+                  </div>
+                </div>
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mb-4">
+                  <div className="font-mono text-sm"><strong>Formula:</strong> Duration = ROUNDUP(Project Length ÷ Rate)</div>
+                  <div className="font-mono text-sm mt-1"><strong>Given:</strong> Project Length = 15,840 ft | Backfill Rate = 250 ft/day</div>
+                </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-gray-600">Backfill Duration =</span>
+                  <input
+                    type="number"
+                    value={quizAnswers.q3}
+                    onChange={(e) => setQuizAnswers(prev => ({ ...prev, q3: e.target.value }))}
+                    disabled={quizSubmitted.q3}
+                    className={`w-24 px-3 py-2 border-2 rounded text-center font-bold text-lg ${quizSubmitted.q3 ? (quizCorrect.q3 ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50') : 'border-gray-300 focus:border-blue-500'}`}
+                    placeholder="?"
+                  />
+                  <span className="text-gray-600">days</span>
+                </div>
+                {!quizSubmitted.q3 ? (
+                  <button onClick={() => setQuizSubmitted(prev => ({ ...prev, q3: true }))} disabled={!quizAnswers.q3} className={`px-4 py-2 rounded font-bold ${quizAnswers.q3 ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Check Answer</button>
+                ) : (
+                  <div className={`p-3 rounded ${quizCorrect.q3 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {quizCorrect.q3 ? '✅ Correct! 15,840 ÷ 250 = 63.36 → rounds up to 64 days' : '❌ Incorrect. Calculate: 15,840 ÷ 250 = 63.36, which rounds UP to 64 days.'}
+                  </div>
+                )}
+              </div>
+              {/* Continue to Step 2 */}
+              {allQuizCorrect && (
+                <div className="bg-green-50 border-2 border-green-500 rounded-lg p-5 text-center">
+                  <div className="text-4xl mb-2">🎉</div>
+                  <h3 className="font-bold text-xl text-green-800 mb-2">All Questions Correct!</h3>
+                  <p className="text-green-700 mb-4">You're ready to create your schedule.</p>
+                  <button onClick={() => setR1Step(2)} className="px-6 py-3 bg-green-600 text-white rounded-lg font-bold text-lg hover:bg-green-700">Continue to Step 2: Interactive Scheduler →</button>
+                </div>
+              )}
+            </div>
           )}
-          <button onClick={nextRound} disabled={!r1IsValid} className="w-full bg-green-600 text-white py-3 rounded-lg font-bold disabled:bg-gray-300">{r1IsValid ? 'Complete R1 → R2' : 'Enter Start days to continue'}</button>
+          {/* STEP 2: Interactive Scheduler */}
+          {r1Step === 2 && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                <h3 className="font-bold">📋 R1 Step 2: Create a Bar Chart Schedule</h3>
+                <p className="text-sm text-gray-600">Excavation must start Day 15 (after mobilization). Enter Start day for other activities.</p>
+              </div>
+              <div className="bg-white rounded-lg shadow p-4">
+                <h3 className="font-bold mb-2">📐 Formulas</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="bg-blue-50 p-3 rounded"><strong>Duration</strong> = ROUNDUP({PROJECT_LENGTH.toLocaleString()} ÷ Daily Production Rate)</div>
+                  <div className="bg-green-50 p-3 rounded"><strong>End</strong> = Start + Duration - 1</div>
+                </div>
+              </div>
+              <div className="bg-white rounded-lg shadow p-4">
+                <h3 className="font-bold mb-3">📝 Schedule Table</h3>
+                <table className="w-full text-sm border">
+                  <thead className="bg-gray-100"><tr><th className="px-2 py-2 border">Activity</th><th className="px-2 py-2 border">Rate (ft/day)</th><th className="px-2 py-2 border">Duration (days)</th><th className="px-2 py-2 border bg-yellow-50">Start (day)</th><th className="px-2 py-2 border">End (day)</th></tr></thead>
+                  <tbody>
+                    <tr className="bg-gray-50"><td className="px-2 py-2 border">Mobilization</td><td className="px-2 py-2 border text-center">-</td><td className="px-2 py-2 border text-center">{MOB_DAYS}</td><td className="px-2 py-2 border text-center">1</td><td className="px-2 py-2 border text-center">{MOB_DAYS}</td></tr>
+                    <tr className="text-blue-700"><td className="px-2 py-2 border font-medium">Excavation & Bedding</td><td className="px-2 py-2 border text-center">{CREWS.exc.rate}</td><td className="px-2 py-2 border text-center">{dur.exc}</td><td className="px-2 py-2 border text-center"><span className="bg-blue-100 px-2 py-1 rounded font-bold">{MOB_DAYS + 1}</span></td><td className="px-2 py-2 border text-center font-bold">{r1Student.excE}</td></tr>
+                    <tr className="text-green-700"><td className="px-2 py-2 border font-medium">Pipe Laying & Alignment</td><td className="px-2 py-2 border text-center">{CREWS.pipe.rate}</td><td className="px-2 py-2 border text-center">{dur.pipe}</td><td className="px-2 py-2 border text-center"><input type="number" value={r1Input.pipeS} onChange={(e) => setR1Input({...r1Input, pipeS: e.target.value})} className="w-16 px-1 py-1 border-2 rounded text-center bg-yellow-50 border-yellow-400" /></td><td className="px-2 py-2 border text-center font-bold">{r1Student.pipeE || '-'}</td></tr>
+                    <tr className="text-orange-700"><td className="px-2 py-2 border font-medium">Backfill & Compaction</td><td className="px-2 py-2 border text-center">{CREWS.back.rate}</td><td className="px-2 py-2 border text-center">{dur.back}</td><td className="px-2 py-2 border text-center"><input type="number" value={r1Input.backS} onChange={(e) => setR1Input({...r1Input, backS: e.target.value})} className="w-16 px-1 py-1 border-2 rounded text-center bg-yellow-50 border-yellow-400" /></td><td className="px-2 py-2 border text-center font-bold">{r1Student.backE || '-'}</td></tr>
+                  </tbody>
+                </table>
+                {r1Student.end > 0 && <div className="mt-3 text-center">Project End: <strong className="text-2xl text-blue-600">{r1Student.end} days</strong></div>}
+              </div>
+              {r1IsValid && (
+                <div className="bg-white rounded-lg shadow p-4">
+                  <h3 className="font-bold mb-3">📊 Bar Chart (Gantt)</h3>
+                  <div className="space-y-2">
+                    {[{ name: 'Mobilization', s: 1, e: MOB_DAYS, c: 'bg-gray-400' },{ name: 'Excavation & Bedding', s: r1Student.excS, e: r1Student.excE, c: 'bg-blue-500' },{ name: 'Pipe Laying & Alignment', s: r1Student.pipeS, e: r1Student.pipeE, c: 'bg-green-500' },{ name: 'Backfill & Compaction', s: r1Student.backS, e: r1Student.backE, c: 'bg-orange-500' }].map((bar, i) => (<div key={i} className="flex items-center gap-2"><div className="w-32 text-xs text-right">{bar.name}</div><div className="flex-1 h-6 bg-gray-100 rounded relative">{bar.s > 0 && bar.e > 0 && (<div className={`absolute h-full ${bar.c} rounded text-white text-xs flex items-center justify-center`} style={{ left: `${(bar.s/150)*100}%`, width: `${Math.max(((bar.e-bar.s+1)/150)*100,3)}%` }}>{bar.s}-{bar.e}</div>)}</div></div>))}
+                  </div>
+                </div>
+              )}
+              <button onClick={nextRound} disabled={!r1IsValid} className="w-full bg-green-600 text-white py-3 rounded-lg font-bold disabled:bg-gray-300">{r1IsValid ? 'Complete R1 → R2' : 'Enter Start days to continue'}</button>
+            </div>
+          )}
         </>)}
 
         {/* R2: LOB Analysis */}
