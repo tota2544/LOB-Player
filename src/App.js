@@ -266,6 +266,68 @@ export default function LOBGame() {
           </div>
         </div>
         ``
+                  {/* Collapsible Crew Cards (Option B) */}
+          <div className="mt-4 space-y-3">
+            {/* Crew A */}
+            <details className="group rounded-lg border border-blue-200 bg-blue-50/60 p-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+                    ⛏️
+                  </div>
+                  <div>
+                    <div className="font-bold text-blue-900">Crew A — Excavation & Bedding</div>
+                    <div className="text-xs text-blue-800/80">Leads the project</div>
+                  </div>
+                </div>
+                <span className="text-blue-900/80 group-open:rotate-180 transition-transform">▾</span>
+              </summary>
+          
+              <p className="mt-3 text-sm leading-relaxed text-blue-900">
+                Prepares the trench and bedding foundation, setting the pace for all downstream crews.
+              </p>
+            </details>
+          
+            {/* Crew B */}
+            <details className="group rounded-lg border border-green-200 bg-green-50/60 p-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-100 text-green-700">
+                    🔧
+                  </div>
+                  <div>
+                    <div className="font-bold text-green-900">Crew B — Pipe Laying & Alignment</div>
+                    <div className="text-xs text-green-800/80">Follows excavation work</div>
+                  </div>
+                </div>
+                <span className="text-green-900/80 group-open:rotate-180 transition-transform">▾</span>
+              </summary>
+          
+              <p className="mt-3 text-sm leading-relaxed text-green-900">
+                Installs and aligns pipeline sections in the trench and depends on excavation being ahead.
+              </p>
+            </details>
+          
+            {/* Crew C */}
+            <details className="group rounded-lg border border-orange-200 bg-orange-50/60 p-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 text-orange-700">
+                    🚜
+                  </div>
+                  <div>
+                    <div className="font-bold text-orange-900">Crew C — Backfill & Compaction</div>
+                    <div className="text-xs text-orange-800/80">Often the fastest crew</div>
+                  </div>
+                </div>
+                <span className="text-orange-900/80 group-open:rotate-180 transition-transform">▾</span>
+              </summary>
+          
+              <p className="mt-3 text-sm leading-relaxed text-orange-900">
+                Places and compacts backfill over completed pipe sections and must be spaced to avoid catching up.
+              </p>
+            </details>
+          </div>
 
           <div className="bg-white rounded-xl p-5">
             <h2 className="text-xl font-bold text-blue-900 mb-4">🚀 Ready to Play?</h2>
