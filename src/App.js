@@ -426,6 +426,7 @@ export default function LOBGame() {
               </div>
             </div>
           </div>
+
           {/* STEP 1: Quiz */}
           {r1Step === 1 && (
             <div className="space-y-4">
@@ -433,6 +434,7 @@ export default function LOBGame() {
                 <h3 className="font-bold text-lg">📚 Step 1: Knowledge Check</h3>
                 <p className="text-sm text-gray-600 mt-1">Before creating your schedule, answer these questions to confirm you understand the project basics.</p>
               </div>
+
               {/* Q1: Activity Sequence */}
               <div className="bg-white rounded-lg shadow p-5">
                 <div className="flex items-start gap-3 mb-4">
@@ -471,6 +473,7 @@ export default function LOBGame() {
                   </div>
                 )}
               </div>
+
               {/* Q2: Slowest Crew */}
               <div className="bg-white rounded-lg shadow p-5">
                 <div className="flex items-start gap-3 mb-4">
@@ -519,6 +522,7 @@ export default function LOBGame() {
                   </div>
                 )}
               </div>
+
               {/* Q3: Duration Calculation */}
               <div className="bg-white rounded-lg shadow p-5">
                 <div className="flex items-start gap-3 mb-4">
@@ -552,6 +556,7 @@ export default function LOBGame() {
                   </div>
                 )}
               </div>
+
               {/* Continue to Step 2 */}
               {allQuizCorrect && (
                 <div className="bg-green-50 border-2 border-green-500 rounded-lg p-5 text-center">
@@ -563,6 +568,7 @@ export default function LOBGame() {
               )}
             </div>
           )}
+
           {/* STEP 2: Interactive Scheduler */}
           {r1Step === 2 && (
             <div className="space-y-4">
