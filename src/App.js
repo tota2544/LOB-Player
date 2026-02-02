@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
 const PROJECT_LENGTH = 15840;
 const MOB_DAYS = 14;
 const MOB_COST = 25000;
@@ -8,11 +9,13 @@ const INDIRECT_RATE = 0.30;
 const PROFIT_RATE = 0.05;
 const TARGET_DAYS = 55;
 const TARGET_COST = 550000;
+
 const CREWS = {
   exc: { rate: 220, cost: 1600, name: 'Excavation & Bedding', equipment: 'Excavator' },
   pipe: { rate: 180, cost: 2500, name: 'Pipe Laying & Alignment', equipment: 'Mobile Crane' },
   back: { rate: 250, cost: 2300, name: 'Backfill & Compaction', equipment: 'Excavator + Compactor' },
 };
+
 
 const EQUIPMENT = {
   exc: [
@@ -30,6 +33,7 @@ const EQUIPMENT = {
     { name: 'Large Backfill Set', rate: 375, cost: 3000 },
   ],
 };
+
 export default function LOBGame() {
   const [round, setRound] = useState(0);
   const [name, setName] = useState('');
@@ -43,26 +47,15 @@ export default function LOBGame() {
     pipe: { standard: 1, heavy: 0 },
     back: { small: 0, standard: 1, large: 0 },
   });
-  // R1 Quiz State
-  const [r1Step, setR1Step] = useState(1); // 1 = Quiz, 2 = Scheduler
-  const [quizAnswers, setQuizAnswers] = useState({ q1: null, q2: null, q3: '' });
-  const [quizSubmitted, setQuizSubmitted] = useState({ q1: false, q2: false, q3: false });
-
-  // Quiz validation
-  const quizCorrect = {
-    q1: quizAnswers.q1 === 'c',
-    q2: quizAnswers.q2 === 'b',
-    q3: parseInt(quizAnswers.q3) === 64
-  };
-  const allQuizCorrect = quizSubmitted.q1 && quizSubmitted.q2 && quizSubmitted.q3 &&
-                         quizCorrect.q1 && quizCorrect.q2 && quizCorrect.q3;
   const [r5Buffer, setR5Buffer] = useState(5);
   const [results, setResults] = useState({});
+
   const dur = useMemo(() => ({
     exc: Math.ceil(PROJECT_LENGTH / CREWS.exc.rate),
     pipe: Math.ceil(PROJECT_LENGTH / CREWS.pipe.rate),
     back: Math.ceil(PROJECT_LENGTH / CREWS.back.rate),
   }), []);
+
   const r1Student = useMemo(() => {
     const excS = MOB_DAYS + 1;
     const excE = excS + dur.exc - 1;
@@ -72,22 +65,27 @@ export default function LOBGame() {
     const backE = backS > 0 ? backS + dur.back - 1 : 0;
     return { excS, excE, pipeS, pipeE, backS, backE, end: Math.max(excE, pipeE, backE) };
   }, [r1Input, dur]);
+
   const r1IsValid = r1Student.pipeS > 0 && r1Student.backS > 0;
+
   const r2Correct = useMemo(() => {
     const excS = MOB_DAYS + 1, excE = excS + dur.exc - 1;
     const pipeS = excS + DEFAULT_BUFFER, pipeE = pipeS + dur.pipe - 1;
     const backS = pipeE + DEFAULT_BUFFER - dur.back + 1, backE = backS + dur.back - 1;
     return { excS, excE, pipeS, pipeE, backS, backE, end: Math.max(excE, pipeE, backE) };
   }, [dur]);
+
   const r2Student = useMemo(() => ({
     excS: parseInt(r2Input.excS) || 0, excE: parseInt(r2Input.excE) || 0,
     pipeS: parseInt(r2Input.pipeS) || 0, pipeE: parseInt(r2Input.pipeE) || 0,
     backS: parseInt(r2Input.backS) || 0, backE: parseInt(r2Input.backE) || 0,
     end: Math.max(parseInt(r2Input.excE) || 0, parseInt(r2Input.pipeE) || 0, parseInt(r2Input.backE) || 0)
   }), [r2Input]);
+
   const r2IsCorrect = r2Student.excS === r2Correct.excS && r2Student.excE === r2Correct.excE &&
                      r2Student.pipeS === r2Correct.pipeS && r2Student.pipeE === r2Correct.pipeE &&
                      r2Student.backS === r2Correct.backS && r2Student.backE === r2Correct.backE;
+
   const r2Cost = useMemo(() => {
     const excC = dur.exc * CREWS.exc.cost, pipeC = dur.pipe * CREWS.pipe.cost, backC = dur.back * CREWS.back.cost;
     const direct = MOB_COST + excC + pipeC + backC;
@@ -95,12 +93,14 @@ export default function LOBGame() {
     const profit = Math.round((direct + indirect) * PROFIT_RATE);
     return { direct, indirect, profit, total: direct + indirect + profit, excC, pipeC, backC };
   }, [dur]);
+
   const r3 = useMemo(() => {
     const excS = MOB_DAYS + 1, excE = excS + dur.exc - 1;
     const pipeS = excS + r3Buffer, pipeE = pipeS + dur.pipe - 1;
     const backS = pipeE + r3Buffer - dur.back + 1, backE = backS + dur.back - 1;
     return { excS, excE, pipeS, pipeE, backS, backE, end: Math.max(excE, pipeE, backE) };
   }, [dur, r3Buffer]);
+
   const r4 = useMemo(() => {
     const exc = EQUIPMENT.exc[r4Eq.exc], pipe = EQUIPMENT.pipe[r4Eq.pipe], back = EQUIPMENT.back[r4Eq.back];
     const excDur = Math.ceil(PROJECT_LENGTH / exc.rate), pipeDur = Math.ceil(PROJECT_LENGTH / pipe.rate), backDur = Math.ceil(PROJECT_LENGTH / back.rate);
@@ -111,6 +111,7 @@ export default function LOBGame() {
     const backE = backS + backDur - 1;
     return { excS, excE, excDur, excRate: exc.rate, excCost: exc.cost, excName: exc.name, pipeS, pipeE, pipeDur, pipeRate: pipe.rate, pipeCost: pipe.cost, pipeName: pipe.name, backS, backE, backDur, backRate: back.rate, backCost: back.cost, backName: back.name, end: Math.max(excE, pipeE, backE) };
   }, [r4Eq]);
+
   const r4Cost = useMemo(() => {
     const excC = r4.excDur * r4.excCost, pipeC = r4.pipeDur * r4.pipeCost, backC = r4.backDur * r4.backCost;
     const direct = MOB_COST + excC + pipeC + backC;
@@ -118,6 +119,7 @@ export default function LOBGame() {
     const profit = Math.round((direct + indirect) * PROFIT_RATE);
     return { direct, indirect, profit, total: direct + indirect + profit, excC, pipeC, backC };
   }, [r4]);
+
   const r5Calc = useMemo(() => {
     const excRate = r5Config.exc.small * 165 + r5Config.exc.standard * 220 + r5Config.exc.large * 330 || 1;
     const excCost = r5Config.exc.small * 900 + r5Config.exc.standard * 1200 + r5Config.exc.large * 1800;
@@ -127,6 +129,7 @@ export default function LOBGame() {
     const backCost = r5Config.back.small * 1400 + r5Config.back.standard * 1800 + r5Config.back.large * 2600;
     return { exc: { rate: excRate, cost: excCost }, pipe: { rate: pipeRate, cost: pipeCost }, back: { rate: backRate, cost: backCost } };
   }, [r5Config]);
+
   const r5 = useMemo(() => {
     const excDur = Math.ceil(PROJECT_LENGTH / r5Calc.exc.rate), pipeDur = Math.ceil(PROJECT_LENGTH / r5Calc.pipe.rate), backDur = Math.ceil(PROJECT_LENGTH / r5Calc.back.rate);
     const excS = MOB_DAYS + 1, excE = excS + excDur - 1;
@@ -136,6 +139,7 @@ export default function LOBGame() {
     const backE = backS + backDur - 1;
     return { excS, excE, excDur, excRate: r5Calc.exc.rate, excCost: r5Calc.exc.cost, pipeS, pipeE, pipeDur, pipeRate: r5Calc.pipe.rate, pipeCost: r5Calc.pipe.cost, backS, backE, backDur, backRate: r5Calc.back.rate, backCost: r5Calc.back.cost, end: Math.max(excE, pipeE, backE) };
   }, [r5Calc, r5Buffer]);
+
   const r5Cost = useMemo(() => {
     const excC = r5.excDur * r5.excCost, pipeC = r5.pipeDur * r5.pipeCost, backC = r5.backDur * r5.backCost;
     const direct = MOB_COST + excC + pipeC + backC;
@@ -143,6 +147,7 @@ export default function LOBGame() {
     const profit = Math.round((direct + indirect) * PROFIT_RATE);
     return { direct, indirect, profit, total: direct + indirect + profit, excC, pipeC, backC };
   }, [r5]);
+
   const genLOB = (schedules) => {
     const data = [];
     const maxDay = Math.max(...schedules.map(s => s.end || 0), 100) + 10;
@@ -160,6 +165,7 @@ export default function LOBGame() {
     }
     return data;
   };
+
   const nextRound = () => {
     const res = { round };
     if (round === 1) Object.assign(res, { ...r1Student });
@@ -170,11 +176,13 @@ export default function LOBGame() {
     setResults(p => ({ ...p, [round]: res }));
     setRound(round + 1);
   };
+
   const InputCell = ({ value, onChange, correct, submitted }) => {
     let bg = "bg-yellow-50 border-yellow-400";
     if (submitted) bg = parseInt(value) === correct ? "bg-green-100 border-green-500" : "bg-red-100 border-red-500";
     return <input type="number" value={value} onChange={onChange} className={`w-16 px-1 py-1 border-2 rounded text-center text-sm ${bg}`} />;
   };
+
   const BudgetTable = ({ cost, durExc, durPipe, durBack, costExc, costPipe, costBack }) => (
     <div className="grid grid-cols-2 gap-4 text-sm">
       <table className="w-full border"><tbody>
@@ -192,6 +200,7 @@ export default function LOBGame() {
       </tbody></table>
     </div>
   );
+
   // INTRO SCREEN
     if (round === 0) {
       return (
@@ -356,6 +365,7 @@ export default function LOBGame() {
         </div>
       );
     }
+
   // FINAL SCREEN
   if (round === 6) {
     const pass = results[5]?.pass;
@@ -371,6 +381,7 @@ export default function LOBGame() {
               <div>Cost: <span className={`font-bold ${results[5]?.cost <= TARGET_COST ? 'text-green-600' : 'text-red-600'}`}>${results[5]?.cost?.toLocaleString()}</span> <span className="text-gray-400">(limit: ≤${TARGET_COST.toLocaleString()})</span></div>
             </div>
           </div>
+
           <div className="mb-6">
             <h3 className="font-bold text-lg mb-3">📈 Round Summary</h3>
             <table className="w-full text-sm border">
@@ -384,6 +395,7 @@ export default function LOBGame() {
               </tbody>
             </table>
           </div>
+
           <div className="bg-blue-50 p-4 rounded-lg mb-6">
             <h3 className="font-bold text-lg mb-3">🎓 Key Learnings</h3>
             <ul className="space-y-2 text-sm">
@@ -394,12 +406,15 @@ export default function LOBGame() {
               <li><strong>R5:</strong> Using multiple equipment units increases both speed and cost.</li>
             </ul>
           </div>
+
           <button onClick={() => window.location.reload()} className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold">🔄 Play Again</button>
         </div>
       </div>
     );
   }
+
   const titles = { 1: 'Bar Chart', 2: 'LOB Analysis', 3: 'Buffer Analysis', 4: 'Rate Analysis', 5: 'Optimize for Constraints' };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="bg-blue-900 text-white py-2 px-4 sticky top-0 z-10">
@@ -412,203 +427,43 @@ export default function LOBGame() {
       <div className="bg-white border-b"><div className="max-w-5xl mx-auto px-4 py-2 flex gap-1">{[1,2,3,4,5].map(r => (<div key={r} className={`flex-1 h-2 rounded ${r < round ? 'bg-green-500' : r === round ? 'bg-blue-500' : 'bg-gray-200'}`} />))}</div></div>
       <div className="max-w-5xl mx-auto p-4 space-y-4">
         
-        {/* R1: Bar Chart - Improved with Quiz + Interactive Scheduler */}
+        {/* R1: Bar Chart */}
         {round === 1 && (<>
-          {/* Step indicator */}
-          <div className="bg-white rounded-lg shadow p-3 mb-4">
-            <div className="flex items-center gap-2">
-              <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${r1Step === 1 ? 'bg-blue-100 text-blue-800' : allQuizCorrect ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
-                {allQuizCorrect ? '✅' : '1️⃣'} Knowledge Quiz
-              </div>
-              <span className="text-gray-400">→</span>
-              <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${r1Step === 2 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-500'}`}>
-                2️⃣ Interactive Scheduler
-              </div>
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+            <h3 className="font-bold">📋 R1: Create a Bar Chart Schedule</h3>
+            <p className="text-sm text-gray-600">Excavation must start Day 15 (after mobilization). Enter Start day for other activities.</p>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4">
+            <h3 className="font-bold mb-2">📐 Formulas</h3>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="bg-blue-50 p-3 rounded"><strong>Duration</strong> = ROUNDUP({PROJECT_LENGTH.toLocaleString()} ÷ Daily Production Rate)</div>
+              <div className="bg-green-50 p-3 rounded"><strong>End</strong> = Start + Duration - 1</div>
             </div>
           </div>
-
-          {/* STEP 1: Quiz */}
-          {r1Step === 1 && (
-            <div className="space-y-4">
-              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-                <h3 className="font-bold text-lg">📚 Step 1: Knowledge Check</h3>
-                <p className="text-sm text-gray-600 mt-1">Before creating your schedule, answer these questions to confirm you understand the project basics.</p>
+          <div className="bg-white rounded-lg shadow p-4">
+            <h3 className="font-bold mb-3">📝 Schedule Table</h3>
+            <table className="w-full text-sm border">
+              <thead className="bg-gray-100"><tr><th className="px-2 py-2 border">Activity</th><th className="px-2 py-2 border">Rate (ft/day)</th><th className="px-2 py-2 border">Duration (days)</th><th className="px-2 py-2 border bg-yellow-50">Start (day)</th><th className="px-2 py-2 border">End (day)</th></tr></thead>
+              <tbody>
+                <tr className="bg-gray-50"><td className="px-2 py-2 border">Mobilization</td><td className="px-2 py-2 border text-center">-</td><td className="px-2 py-2 border text-center">{MOB_DAYS}</td><td className="px-2 py-2 border text-center">1</td><td className="px-2 py-2 border text-center">{MOB_DAYS}</td></tr>
+                <tr className="text-blue-700"><td className="px-2 py-2 border font-medium">Excavation & Bedding</td><td className="px-2 py-2 border text-center">{CREWS.exc.rate}</td><td className="px-2 py-2 border text-center">{dur.exc}</td><td className="px-2 py-2 border text-center"><span className="bg-blue-100 px-2 py-1 rounded font-bold">{MOB_DAYS + 1}</span></td><td className="px-2 py-2 border text-center font-bold">{r1Student.excE}</td></tr>
+                <tr className="text-green-700"><td className="px-2 py-2 border font-medium">Pipe Laying & Alignment</td><td className="px-2 py-2 border text-center">{CREWS.pipe.rate}</td><td className="px-2 py-2 border text-center">{dur.pipe}</td><td className="px-2 py-2 border text-center"><input type="number" value={r1Input.pipeS} onChange={(e) => setR1Input({...r1Input, pipeS: e.target.value})} onBlur={(e) => setR1Input({...r1Input, pipeS: e.target.value})} className="w-16 px-1 py-1 border-2 rounded text-center bg-yellow-50 border-yellow-400" /></td><td className="px-2 py-2 border text-center font-bold">{r1Student.pipeE || '-'}</td></tr>
+                <tr className="text-orange-700"><td className="px-2 py-2 border font-medium">Backfill & Compaction</td><td className="px-2 py-2 border text-center">{CREWS.back.rate}</td><td className="px-2 py-2 border text-center">{dur.back}</td><td className="px-2 py-2 border text-center"><input type="number" value={r1Input.backS} onChange={(e) => setR1Input({...r1Input, backS: e.target.value})} onBlur={(e) => setR1Input({...r1Input, backS: e.target.value})} className="w-16 px-1 py-1 border-2 rounded text-center bg-yellow-50 border-yellow-400" /></td><td className="px-2 py-2 border text-center font-bold">{r1Student.backE || '-'}</td></tr>
+              </tbody>
+            </table>
+            {r1Student.end > 0 && <div className="mt-3 text-center">Project End: <strong className="text-2xl text-blue-600">{r1Student.end} days</strong></div>}
+          </div>
+          {r1IsValid && (
+            <div className="bg-white rounded-lg shadow p-4">
+              <h3 className="font-bold mb-3">📊 Bar Chart (Gantt)</h3>
+              <div className="space-y-2">
+                {[{ name: 'Mobilization', s: 1, e: MOB_DAYS, c: 'bg-gray-400' },{ name: 'Excavation & Bedding', s: r1Student.excS, e: r1Student.excE, c: 'bg-blue-500' },{ name: 'Pipe Laying & Alignment', s: r1Student.pipeS, e: r1Student.pipeE, c: 'bg-green-500' },{ name: 'Backfill & Compaction', s: r1Student.backS, e: r1Student.backE, c: 'bg-orange-500' }].map((bar, i) => (<div key={i} className="flex items-center gap-2"><div className="w-24 text-xs text-right">{bar.name}</div><div className="flex-1 h-6 bg-gray-100 rounded relative">{bar.s > 0 && bar.e > 0 && (<div className={`absolute h-full ${bar.c} rounded text-white text-xs flex items-center justify-center`} style={{ left: `${(bar.s/150)*100}%`, width: `${Math.max(((bar.e-bar.s+1)/150)*100,3)}%` }}>{bar.s}-{bar.e}</div>)}</div></div>))}
               </div>
-
-              {/* Q1: Activity Sequence */}
-              <div className="bg-white rounded-lg shadow p-5">
-                <div className="flex items-start gap-3 mb-4">
-                  <span className="bg-blue-100 text-blue-800 font-bold px-3 py-1 rounded-full text-sm">Q1</span>
-                  <div>
-                    <h4 className="font-bold">What is the correct sequence of activities?</h4>
-                    <p className="text-sm text-gray-500">Select the order in which crews must work on the pipeline.</p>
-                  </div>
-                </div>
-                <div className="space-y-2 mb-4">
-                  {[
-                    { value: 'a', label: 'Backfill → Pipe Laying → Excavation' },
-                    { value: 'b', label: 'Pipe Laying → Excavation → Backfill' },
-                    { value: 'c', label: 'Excavation → Pipe Laying → Backfill' }
-                  ].map(option => (
-                    <button
-                      key={option.value}
-                      onClick={() => !quizSubmitted.q1 && setQuizAnswers(prev => ({ ...prev, q1: option.value }))}
-                      disabled={quizSubmitted.q1}
-                      className={`block w-full p-3 rounded border-2 text-left transition-all ${
-                        !quizSubmitted.q1 
-                          ? (quizAnswers.q1 === option.value ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300')
-                          : (option.value === 'c' ? 'border-green-500 bg-green-50' : (quizAnswers.q1 === option.value ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-gray-50 opacity-50'))
-                      }`}
-                    >
-                      <span className="font-medium">{option.value.toUpperCase()})</span> {option.label}
-                      {quizSubmitted.q1 && option.value === 'c' && <span className="ml-2 text-green-600">✓</span>}
-                    </button>
-                  ))}
-                </div>
-                {!quizSubmitted.q1 ? (
-                  <button onClick={() => setQuizSubmitted(prev => ({ ...prev, q1: true }))} disabled={!quizAnswers.q1} className={`px-4 py-2 rounded font-bold ${quizAnswers.q1 ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Check Answer</button>
-                ) : (
-                  <div className={`p-3 rounded ${quizCorrect.q1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {quizCorrect.q1 ? '✅ Correct! You must dig before laying pipe, and lay pipe before backfilling.' : '❌ Incorrect. Think about it: you cannot lay pipe without digging a trench first.'}
-                  </div>
-                )}
-              </div>
-
-              {/* Q2: Slowest Crew */}
-              <div className="bg-white rounded-lg shadow p-5">
-                <div className="flex items-start gap-3 mb-4">
-                  <span className="bg-blue-100 text-blue-800 font-bold px-3 py-1 rounded-full text-sm">Q2</span>
-                  <div>
-                    <h4 className="font-bold">Which crew is the SLOWEST?</h4>
-                    <p className="text-sm text-gray-500">Compare the production rates below.</p>
-                  </div>
-                </div>
-                <div className="bg-gray-50 rounded p-3 mb-4">
-                  <table className="w-full text-sm">
-                    <thead><tr className="text-left text-gray-500"><th className="pb-2">Crew</th><th className="pb-2 text-right">Rate (ft/day)</th><th className="pb-2 text-right">Duration (days)</th></tr></thead>
-                    <tbody>
-                      <tr><td>⛏️ Excavation</td><td className="text-right font-mono">220</td><td className="text-right font-mono">{dur.exc}</td></tr>
-                      <tr><td>🔧 Pipe Laying</td><td className="text-right font-mono">180</td><td className="text-right font-mono">{dur.pipe}</td></tr>
-                      <tr><td>🚜 Backfill</td><td className="text-right font-mono">250</td><td className="text-right font-mono">{dur.back}</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-                <div className="space-y-2 mb-4">
-                  {[
-                    { value: 'a', label: 'Excavation (220 ft/day)' },
-                    { value: 'b', label: 'Pipe Laying (180 ft/day)' },
-                    { value: 'c', label: 'Backfill (250 ft/day)' }
-                  ].map(option => (
-                    <button
-                      key={option.value}
-                      onClick={() => !quizSubmitted.q2 && setQuizAnswers(prev => ({ ...prev, q2: option.value }))}
-                      disabled={quizSubmitted.q2}
-                      className={`block w-full p-3 rounded border-2 text-left transition-all ${
-                        !quizSubmitted.q2 
-                          ? (quizAnswers.q2 === option.value ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300')
-                          : (option.value === 'b' ? 'border-green-500 bg-green-50' : (quizAnswers.q2 === option.value ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-gray-50 opacity-50'))
-                      }`}
-                    >
-                      <span className="font-medium">{option.value.toUpperCase()})</span> {option.label}
-                      {quizSubmitted.q2 && option.value === 'b' && <span className="ml-2 text-green-600">✓ SLOWEST</span>}
-                    </button>
-                  ))}
-                </div>
-                {!quizSubmitted.q2 ? (
-                  <button onClick={() => setQuizSubmitted(prev => ({ ...prev, q2: true }))} disabled={!quizAnswers.q2} className={`px-4 py-2 rounded font-bold ${quizAnswers.q2 ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Check Answer</button>
-                ) : (
-                  <div className={`p-3 rounded ${quizCorrect.q2 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {quizCorrect.q2 ? '✅ Correct! Pipe Laying at 180 ft/day is the slowest. This will be important for scheduling!' : '❌ Incorrect. The slowest crew has the LOWEST production rate (ft/day).'}
-                  </div>
-                )}
-              </div>
-
-              {/* Q3: Duration Calculation */}
-              <div className="bg-white rounded-lg shadow p-5">
-                <div className="flex items-start gap-3 mb-4">
-                  <span className="bg-blue-100 text-blue-800 font-bold px-3 py-1 rounded-full text-sm">Q3</span>
-                  <div>
-                    <h4 className="font-bold">What is Backfill's duration?</h4>
-                    <p className="text-sm text-gray-500">Calculate using the formula below.</p>
-                  </div>
-                </div>
-                <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mb-4">
-                  <div className="font-mono text-sm"><strong>Formula:</strong> Duration = ROUNDUP(Project Length ÷ Rate)</div>
-                  <div className="font-mono text-sm mt-1"><strong>Given:</strong> Project Length = 15,840 ft | Backfill Rate = 250 ft/day</div>
-                </div>
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-gray-600">Backfill Duration =</span>
-                  <input
-                    type="number"
-                    value={quizAnswers.q3}
-                    onChange={(e) => setQuizAnswers(prev => ({ ...prev, q3: e.target.value }))}
-                    disabled={quizSubmitted.q3}
-                    className={`w-24 px-3 py-2 border-2 rounded text-center font-bold text-lg ${quizSubmitted.q3 ? (quizCorrect.q3 ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50') : 'border-gray-300 focus:border-blue-500'}`}
-                    placeholder="?"
-                  />
-                  <span className="text-gray-600">days</span>
-                </div>
-                {!quizSubmitted.q3 ? (
-                  <button onClick={() => setQuizSubmitted(prev => ({ ...prev, q3: true }))} disabled={!quizAnswers.q3} className={`px-4 py-2 rounded font-bold ${quizAnswers.q3 ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Check Answer</button>
-                ) : (
-                  <div className={`p-3 rounded ${quizCorrect.q3 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {quizCorrect.q3 ? '✅ Correct! 15,840 ÷ 250 = 63.36 → rounds up to 64 days' : '❌ Incorrect. Calculate: 15,840 ÷ 250 = 63.36, which rounds UP to 64 days.'}
-                  </div>
-                )}
-              </div>
-
-              {/* Continue to Step 2 */}
-              {allQuizCorrect && (
-                <div className="bg-green-50 border-2 border-green-500 rounded-lg p-5 text-center">
-                  <div className="text-4xl mb-2">🎉</div>
-                  <h3 className="font-bold text-xl text-green-800 mb-2">All Questions Correct!</h3>
-                  <p className="text-green-700 mb-4">You're ready to create your schedule.</p>
-                  <button onClick={() => setR1Step(2)} className="px-6 py-3 bg-green-600 text-white rounded-lg font-bold text-lg hover:bg-green-700">Continue to Step 2: Interactive Scheduler →</button>
-                </div>
-              )}
             </div>
           )}
-
-          {/* STEP 2: Interactive Scheduler */}
-          {r1Step === 2 && (
-            <div className="space-y-4">
-              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-                <h3 className="font-bold">📋 R1 Step 2: Create a Bar Chart Schedule</h3>
-                <p className="text-sm text-gray-600">Excavation must start Day 15 (after mobilization). Enter Start day for other activities.</p>
-              </div>
-              <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="font-bold mb-2">📐 Formulas</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="bg-blue-50 p-3 rounded"><strong>Duration</strong> = ROUNDUP({PROJECT_LENGTH.toLocaleString()} ÷ Daily Production Rate)</div>
-                  <div className="bg-green-50 p-3 rounded"><strong>End</strong> = Start + Duration - 1</div>
-                </div>
-              </div>
-              <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="font-bold mb-3">📝 Schedule Table</h3>
-                <table className="w-full text-sm border">
-                  <thead className="bg-gray-100"><tr><th className="px-2 py-2 border">Activity</th><th className="px-2 py-2 border">Rate (ft/day)</th><th className="px-2 py-2 border">Duration (days)</th><th className="px-2 py-2 border bg-yellow-50">Start (day)</th><th className="px-2 py-2 border">End (day)</th></tr></thead>
-                  <tbody>
-                    <tr className="bg-gray-50"><td className="px-2 py-2 border">Mobilization</td><td className="px-2 py-2 border text-center">-</td><td className="px-2 py-2 border text-center">{MOB_DAYS}</td><td className="px-2 py-2 border text-center">1</td><td className="px-2 py-2 border text-center">{MOB_DAYS}</td></tr>
-                    <tr className="text-blue-700"><td className="px-2 py-2 border font-medium">Excavation & Bedding</td><td className="px-2 py-2 border text-center">{CREWS.exc.rate}</td><td className="px-2 py-2 border text-center">{dur.exc}</td><td className="px-2 py-2 border text-center"><span className="bg-blue-100 px-2 py-1 rounded font-bold">{MOB_DAYS + 1}</span></td><td className="px-2 py-2 border text-center font-bold">{r1Student.excE}</td></tr>
-                    <tr className="text-green-700"><td className="px-2 py-2 border font-medium">Pipe Laying & Alignment</td><td className="px-2 py-2 border text-center">{CREWS.pipe.rate}</td><td className="px-2 py-2 border text-center">{dur.pipe}</td><td className="px-2 py-2 border text-center"><input type="number" value={r1Input.pipeS} onChange={(e) => setR1Input({...r1Input, pipeS: e.target.value})} className="w-16 px-1 py-1 border-2 rounded text-center bg-yellow-50 border-yellow-400" /></td><td className="px-2 py-2 border text-center font-bold">{r1Student.pipeE || '-'}</td></tr>
-                    <tr className="text-orange-700"><td className="px-2 py-2 border font-medium">Backfill & Compaction</td><td className="px-2 py-2 border text-center">{CREWS.back.rate}</td><td className="px-2 py-2 border text-center">{dur.back}</td><td className="px-2 py-2 border text-center"><input type="number" value={r1Input.backS} onChange={(e) => setR1Input({...r1Input, backS: e.target.value})} className="w-16 px-1 py-1 border-2 rounded text-center bg-yellow-50 border-yellow-400" /></td><td className="px-2 py-2 border text-center font-bold">{r1Student.backE || '-'}</td></tr>
-                  </tbody>
-                </table>
-                {r1Student.end > 0 && <div className="mt-3 text-center">Project End: <strong className="text-2xl text-blue-600">{r1Student.end} days</strong></div>}
-              </div>
-              {r1IsValid && (
-                <div className="bg-white rounded-lg shadow p-4">
-                  <h3 className="font-bold mb-3">📊 Bar Chart (Gantt)</h3>
-                  <div className="space-y-2">
-                    {[{ name: 'Mobilization', s: 1, e: MOB_DAYS, c: 'bg-gray-400' },{ name: 'Excavation & Bedding', s: r1Student.excS, e: r1Student.excE, c: 'bg-blue-500' },{ name: 'Pipe Laying & Alignment', s: r1Student.pipeS, e: r1Student.pipeE, c: 'bg-green-500' },{ name: 'Backfill & Compaction', s: r1Student.backS, e: r1Student.backE, c: 'bg-orange-500' }].map((bar, i) => (<div key={i} className="flex items-center gap-2"><div className="w-32 text-xs text-right">{bar.name}</div><div className="flex-1 h-6 bg-gray-100 rounded relative">{bar.s > 0 && bar.e > 0 && (<div className={`absolute h-full ${bar.c} rounded text-white text-xs flex items-center justify-center`} style={{ left: `${(bar.s/150)*100}%`, width: `${Math.max(((bar.e-bar.s+1)/150)*100,3)}%` }}>{bar.s}-{bar.e}</div>)}</div></div>))}
-                  </div>
-                </div>
-              )}
-              <button onClick={nextRound} disabled={!r1IsValid} className="w-full bg-green-600 text-white py-3 rounded-lg font-bold disabled:bg-gray-300">{r1IsValid ? 'Complete R1 → R2' : 'Enter Start days to continue'}</button>
-            </div>
-          )}
+          <button onClick={nextRound} disabled={!r1IsValid} className="w-full bg-green-600 text-white py-3 rounded-lg font-bold disabled:bg-gray-300">{r1IsValid ? 'Complete R1 → R2' : 'Enter Start days to continue'}</button>
         </>)}
-        
+
         {/* R2: LOB Analysis */}
         {round === 2 && (<>
           <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
@@ -654,6 +509,7 @@ export default function LOBGame() {
           </>)}
           <button onClick={nextRound} disabled={!r2IsCorrect} className="w-full bg-green-600 text-white py-3 rounded-lg font-bold disabled:bg-gray-300">{r2IsCorrect ? 'Complete R2 → R3' : 'Answer correctly to proceed'}</button>
         </>)}
+
         {/* R3: Buffer Analysis */}
         {round === 3 && (<>
           <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded"><h3 className="font-bold">📋 R3: Buffer Analysis</h3><p className="text-sm">See how buffer affects duration.</p></div>
@@ -680,6 +536,7 @@ export default function LOBGame() {
           <div className="bg-yellow-50 p-4 rounded"><strong>💡 Key Insight:</strong> Buffer ↑ = Duration ↑, but Cost stays the same!</div>
           <button onClick={nextRound} className="w-full bg-green-600 text-white py-3 rounded-lg font-bold">Complete R3 → R4</button>
         </>)}
+
         {/* R4: Rate Analysis */}
         {round === 4 && (<>
           <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded"><h3 className="font-bold">📋 R4: Rate Analysis</h3><p className="text-sm">Select equipment type (1 unit each).</p></div>
@@ -712,6 +569,7 @@ export default function LOBGame() {
           </div>
           <button onClick={nextRound} className="w-full bg-green-600 text-white py-3 rounded-lg font-bold">Complete R4 → R5</button>
         </>)}
+
         {/* R5: Optimize for Constraints */}
         {round === 5 && (<>
           <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded"><h3 className="font-bold">📋 R5: Optimization</h3><p className="text-sm">Meet constraints: ≤{TARGET_DAYS} days and ≤${TARGET_COST.toLocaleString()}</p></div>
