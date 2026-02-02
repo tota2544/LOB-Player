@@ -235,8 +235,7 @@ export default function LOBGame() {
           </h2>
         
           <div className="overflow-x-auto">
-            <table className="w-full text-sm font-bold table-auto">
-                                    {/* Collapsible Crew Cards (Option B) */}
+                                                      {/* Collapsible Crew Cards (Option B) */}
           <div className="mt-4 space-y-3">
             {/* Crew A */}
             <details className="group rounded-lg border border-blue-200 bg-blue-50/60 p-4">
@@ -298,6 +297,7 @@ export default function LOBGame() {
               </p>
             </details>
           </div>
+            <table className="w-full text-sm font-bold table-auto">
               <thead className="bg-blue-100">
                 <tr>
                   <th className="px-3 py-3 text-left">Crew</th>
