@@ -522,6 +522,321 @@ function Round1({ onComplete }) {
 }
 // -------------------- END R1 DRAG SCHEDULER --------------------
 
+// -------------------- R2 COMPONENTS --------------------
+function FlashCard({ title, icon, isOpen, onToggle, children }) {
+  return (
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+      >
+        <span className="font-medium">{icon} {title}</span>
+        <span className={`transform transition-transform ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+      </button>
+      {isOpen && (
+        <div className="p-4 bg-white border-t border-gray-200 text-sm text-gray-700">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BarChartR1({ schedule }) {
+  const maxDay = Math.max(schedule.excE, schedule.pipeE, schedule.backE, 120);
+  const dayToPercent = (day) => (day / maxDay) * 100;
+  
+  const bars = [
+    { label: 'Mobilization', start: 1, end: MOB_DAYS, color: 'bg-gray-400' },
+    { label: 'Excavation', start: schedule.excS, end: schedule.excE, color: 'bg-blue-500' },
+    { label: 'Pipe Laying', start: schedule.pipeS, end: schedule.pipeE, color: 'bg-green-500' },
+    { label: 'Backfill', start: schedule.backS, end: schedule.backE, color: 'bg-orange-500' },
+  ];
+
+  return (
+    <div className="space-y-2">
+      {bars.map((bar, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <div className="w-20 text-xs text-right text-gray-600">{bar.label}</div>
+          <div className="flex-1 h-6 bg-gray-100 rounded relative">
+            <div
+              className={`absolute h-full ${bar.color} rounded flex items-center justify-center text-white text-xs`}
+              style={{
+                left: `${dayToPercent(bar.start)}%`,
+                width: `${dayToPercent(bar.end - bar.start + 1)}%`
+              }}
+            >
+              {bar.start}-{bar.end}
+            </div>
+          </div>
+        </div>
+      ))}
+      <div className="flex items-center gap-2">
+        <div className="w-20"></div>
+        <div className="flex-1 flex justify-between text-xs text-gray-500 px-1">
+          <span>0</span>
+          <span>{Math.round(maxDay/4)}</span>
+          <span>{Math.round(maxDay/2)}</span>
+          <span>{Math.round(maxDay*3/4)}</span>
+          <span>{maxDay}</span>
+        </div>
+      </div>
+      <div className="text-center text-xs text-gray-500">Time (days)</div>
+    </div>
+  );
+}
+
+function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
+  const chartRef = useRef(null);
+  const [dragging, setDragging] = useState(null);
+  const [dragOffset, setDragOffset] = useState(0);
+
+  const CHART_WIDTH = 600;
+  const CHART_HEIGHT = 300;
+  const PADDING = { top: 30, right: 30, bottom: 50, left: 70 };
+  const PLOT_WIDTH = CHART_WIDTH - PADDING.left - PADDING.right;
+  const PLOT_HEIGHT = CHART_HEIGHT - PADDING.top - PADDING.bottom;
+  const MAX_DAY = 140;
+
+  const dayToX = (day) => PADDING.left + (day / MAX_DAY) * PLOT_WIDTH;
+  const xToDay = (x) => Math.round(((x - PADDING.left) / PLOT_WIDTH) * MAX_DAY);
+  const distToY = (dist) => PADDING.top + PLOT_HEIGHT - (dist / PROJECT_LENGTH) * PLOT_HEIGHT;
+
+  // Generate line points for a schedule
+  const getLinePoints = (start, end) => {
+    if (!start || !end || start <= 0) return '';
+    const x1 = dayToX(start);
+    const y1 = distToY(0);
+    const x2 = dayToX(end);
+    const y2 = distToY(PROJECT_LENGTH);
+    return `${x1},${y1} ${x2},${y2}`;
+  };
+
+  const handleMouseDown = (activity, e) => {
+    e.preventDefault();
+    const rect = chartRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const currentStart = r2Schedule[activity + 'S'];
+    setDragOffset(mouseX - dayToX(currentStart));
+    setDragging(activity);
+  };
+
+  const handleMouseMove = useCallback((e) => {
+    if (!dragging || !chartRef.current) return;
+    const rect = chartRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const newStart = Math.max(MOB_DAYS + 1, Math.min(xToDay(mouseX - dragOffset), MAX_DAY - 20));
+    
+    onR2Change({
+      ...r2Schedule,
+      [dragging + 'S']: newStart
+    });
+  }, [dragging, dragOffset, r2Schedule, onR2Change]);
+
+  const handleMouseUp = useCallback(() => setDragging(null), []);
+
+  useEffect(() => {
+    if (!dragging) return;
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [dragging, handleMouseMove, handleMouseUp]);
+
+  // Calculate end days
+  const r1Lines = {
+    exc: { start: r1Schedule.excS, end: r1Schedule.excE },
+    pipe: { start: r1Schedule.pipeS, end: r1Schedule.pipeE },
+    back: { start: r1Schedule.backS, end: r1Schedule.backE },
+  };
+
+  const r2Lines = {
+    exc: { start: r2Schedule.excS, end: r2Schedule.excS + durations.exc - 1 },
+    pipe: { start: r2Schedule.pipeS, end: r2Schedule.pipeS + durations.pipe - 1 },
+    back: { start: r2Schedule.backS, end: r2Schedule.backS + durations.back - 1 },
+  };
+
+  const colors = {
+    exc: { stroke: '#2563eb', name: 'Excavation' },
+    pipe: { stroke: '#16a34a', name: 'Pipe Laying' },
+    back: { stroke: '#ea580c', name: 'Backfill' },
+  };
+
+  // X-axis ticks
+  const xTicks = [0, 20, 40, 60, 80, 100, 120, 140];
+  // Y-axis ticks
+  const yTicks = [0, 4000, 8000, 12000, 16000];
+
+  return (
+    <div className="flex flex-col items-center">
+      {/* Legend */}
+      <div className="flex gap-4 mb-2 text-sm">
+        <div className="flex items-center gap-1">
+          <div className="w-8 border-t-2 border-dashed border-gray-400"></div>
+          <span className="text-gray-600">R1 (original)</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-8 border-t-2 border-blue-500"></div>
+          <span className="text-gray-600">R2 (drag to adjust)</span>
+        </div>
+      </div>
+
+      <svg
+        ref={chartRef}
+        width={CHART_WIDTH}
+        height={CHART_HEIGHT}
+        className="bg-white border rounded cursor-crosshair"
+      >
+        {/* Grid lines */}
+        {xTicks.map(day => (
+          <line
+            key={`grid-x-${day}`}
+            x1={dayToX(day)}
+            y1={PADDING.top}
+            x2={dayToX(day)}
+            y2={CHART_HEIGHT - PADDING.bottom}
+            stroke="#e5e7eb"
+            strokeWidth="1"
+          />
+        ))}
+        {yTicks.map(dist => (
+          <line
+            key={`grid-y-${dist}`}
+            x1={PADDING.left}
+            y1={distToY(dist)}
+            x2={CHART_WIDTH - PADDING.right}
+            y2={distToY(dist)}
+            stroke="#e5e7eb"
+            strokeWidth="1"
+          />
+        ))}
+
+        {/* X-axis */}
+        <line
+          x1={PADDING.left}
+          y1={CHART_HEIGHT - PADDING.bottom}
+          x2={CHART_WIDTH - PADDING.right}
+          y2={CHART_HEIGHT - PADDING.bottom}
+          stroke="#374151"
+          strokeWidth="2"
+        />
+        {xTicks.map(day => (
+          <text
+            key={`tick-x-${day}`}
+            x={dayToX(day)}
+            y={CHART_HEIGHT - PADDING.bottom + 20}
+            textAnchor="middle"
+            className="text-xs fill-gray-500"
+          >
+            {day}
+          </text>
+        ))}
+        <text
+          x={CHART_WIDTH / 2}
+          y={CHART_HEIGHT - 10}
+          textAnchor="middle"
+          className="text-sm fill-gray-600"
+        >
+          Time (days)
+        </text>
+
+        {/* Y-axis */}
+        <line
+          x1={PADDING.left}
+          y1={PADDING.top}
+          x2={PADDING.left}
+          y2={CHART_HEIGHT - PADDING.bottom}
+          stroke="#374151"
+          strokeWidth="2"
+        />
+        {yTicks.map(dist => (
+          <text
+            key={`tick-y-${dist}`}
+            x={PADDING.left - 10}
+            y={distToY(dist) + 4}
+            textAnchor="end"
+            className="text-xs fill-gray-500"
+          >
+            {(dist/1000)}k
+          </text>
+        ))}
+        <text
+          x={15}
+          y={CHART_HEIGHT / 2}
+          textAnchor="middle"
+          transform={`rotate(-90, 15, ${CHART_HEIGHT / 2})`}
+          className="text-sm fill-gray-600"
+        >
+          Distance (ft)
+        </text>
+
+        {/* R1 Lines (dashed) */}
+        {['exc', 'pipe', 'back'].map(activity => (
+          <polyline
+            key={`r1-${activity}`}
+            points={getLinePoints(r1Lines[activity].start, r1Lines[activity].end)}
+            fill="none"
+            stroke={colors[activity].stroke}
+            strokeWidth="2"
+            strokeDasharray="6,4"
+            opacity="0.5"
+          />
+        ))}
+
+        {/* R2 Lines (solid, draggable) */}
+        {['exc', 'pipe', 'back'].map(activity => (
+          <g key={`r2-${activity}`}>
+            <polyline
+              points={getLinePoints(r2Lines[activity].start, r2Lines[activity].end)}
+              fill="none"
+              stroke={colors[activity].stroke}
+              strokeWidth="3"
+              className={`cursor-grab ${dragging === activity ? 'opacity-70' : ''}`}
+              onMouseDown={(e) => handleMouseDown(activity, e)}
+            />
+            {/* Drag handle at start point */}
+            <circle
+              cx={dayToX(r2Lines[activity].start)}
+              cy={distToY(0)}
+              r="8"
+              fill={colors[activity].stroke}
+              className={`cursor-grab ${dragging === activity ? 'opacity-70' : ''}`}
+              onMouseDown={(e) => handleMouseDown(activity, e)}
+            />
+            {/* Label */}
+            <text
+              x={dayToX(r2Lines[activity].end) + 5}
+              y={distToY(PROJECT_LENGTH) - 5}
+              className="text-xs fill-gray-600"
+            >
+              {colors[activity].name}
+            </text>
+          </g>
+        ))}
+
+        {/* Dragging indicator */}
+        {dragging && (
+          <text
+            x={CHART_WIDTH / 2}
+            y={PADDING.top - 10}
+            textAnchor="middle"
+            className="text-sm fill-yellow-600 font-bold"
+          >
+            Dragging {colors[dragging].name}...
+          </text>
+        )}
+      </svg>
+
+      <p className="text-sm text-gray-500 mt-2">
+        🖱️ Drag the circles at the bottom of each solid line to adjust start days
+      </p>
+    </div>
+  );
+}
+// -------------------- END R2 COMPONENTS --------------------
+
 export default function LOBGame() {
   const [round, setRound] = useState(0);
   const [name, setName] = useState('');
@@ -529,8 +844,21 @@ export default function LOBGame() {
   // R1 state - simplified for new design
   const [r1Schedule, setR1Schedule] = useState(null);
 
-  const [r2Input, setR2Input] = useState({ excS: '', excE: '', pipeS: '', pipeE: '', backS: '', backE: '' });
+  // R2 state - draggable LOB design
+  const [r2Schedule, setR2Schedule] = useState(null);
   const [r2Validated, setR2Validated] = useState(false);
+  const [r2FlashCards, setR2FlashCards] = useState({ whyProblem: false, whatIsLOB: false, howToFix: false });
+
+  // Initialize R2 schedule from R1 when entering round 2
+  useEffect(() => {
+    if (round === 2 && !r2Schedule && r1Schedule) {
+      setR2Schedule({
+        excS: r1Schedule.excS,
+        pipeS: r1Schedule.pipeS,
+        backS: r1Schedule.backS
+      });
+    }
+  }, [round, r2Schedule, r1Schedule]);
   const [r3Buffer, setR3Buffer] = useState(5);
   const [r4Eq, setR4Eq] = useState({ exc: 1, pipe: 0, back: 1 });
   const [r5Config, setR5Config] = useState({
@@ -560,17 +888,30 @@ export default function LOBGame() {
     return { excS, excE, pipeS, pipeE, backS, backE, end: Math.max(excE, pipeE, backE) };
   }, [dur]);
 
-  const r2Student = useMemo(() => ({
-    excS: parseInt(r2Input.excS) || 0, excE: parseInt(r2Input.excE) || 0,
-    pipeS: parseInt(r2Input.pipeS) || 0, pipeE: parseInt(r2Input.pipeE) || 0,
-    backS: parseInt(r2Input.backS) || 0, backE: parseInt(r2Input.backE) || 0,
-    end: Math.max(parseInt(r2Input.excE) || 0, parseInt(r2Input.pipeE) || 0, parseInt(r2Input.backE) || 0)
-  }), [r2Input]);
+  const r2Student = useMemo(() => {
+    if (!r2Schedule) {
+      // Initialize from R1 schedule
+      return r1Student;
+    }
+    return {
+      excS: r2Schedule.excS,
+      excE: r2Schedule.excS + dur.exc - 1,
+      pipeS: r2Schedule.pipeS,
+      pipeE: r2Schedule.pipeS + dur.pipe - 1,
+      backS: r2Schedule.backS,
+      backE: r2Schedule.backS + dur.back - 1,
+      end: Math.max(
+        r2Schedule.excS + dur.exc - 1,
+        r2Schedule.pipeS + dur.pipe - 1,
+        r2Schedule.backS + dur.back - 1
+      )
+    };
+  }, [r2Schedule, r1Student, dur]);
 
   const r2IsCorrect =
-    r2Student.excS === r2Correct.excS && r2Student.excE === r2Correct.excE &&
-    r2Student.pipeS === r2Correct.pipeS && r2Student.pipeE === r2Correct.pipeE &&
-    r2Student.backS === r2Correct.backS && r2Student.backE === r2Correct.backE;
+    r2Student.excS === r2Correct.excS &&
+    r2Student.pipeS === r2Correct.pipeS &&
+    r2Student.backS === r2Correct.backS;
 
   const r2Cost = useMemo(() => {
     const excC = dur.exc * CREWS.exc.cost;
@@ -966,48 +1307,29 @@ export default function LOBGame() {
           }} />
         )}
 
-        {/* R2: LOB Analysis (your original, unchanged) */}
+        {/* R2: LOB Analysis */}
         {round === 2 && (<>
-          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
-            <h3 className="font-bold">📋 R2: Analyze with Line of Balance (LOB)</h3>
-            <p className="text-sm text-gray-600">The LOB from R1 must be revised. Apply {DEFAULT_BUFFER}-day buffer.</p>
+          {/* Header */}
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+            <h3 className="font-bold text-lg">📋 Round 2: Analyze with Line of Balance (LOB)</h3>
+            <p className="text-sm text-gray-600 mt-1">
+              Your R1 schedule may have hidden conflicts. Use LOB to identify and fix them by applying a {DEFAULT_BUFFER}-day buffer between activities.
+            </p>
           </div>
 
+          {/* Section 1: Your R1 Schedule - Bar Chart vs LOB */}
           <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="font-bold mb-2">Your R1 Schedule as LOB</h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={genLOB([r1Student])} margin={{ top: 10, right: 30, bottom: 30, left: 60 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" label={{ value: 'Duration (day)', position: 'insideBottom', offset: -5 }} />
-                <YAxis domain={[0, PROJECT_LENGTH]} tickFormatter={v => (v / 1000).toFixed(0) + 'k'} label={{ value: 'Distance (ft)', angle: -90, position: 'insideLeft', offset: 10 }} />
-                <Tooltip />
-                <Legend verticalAlign="top" height={36} />
-                <Line type="linear" dataKey="exc0" stroke="#2563eb" strokeWidth={2} name="Excavation & Bedding" dot={false} />
-                <Line type="linear" dataKey="pipe0" stroke="#16a34a" strokeWidth={2} name="Pipe Laying & Alignment" dot={false} />
-                <Line type="linear" dataKey="back0" stroke="#ea580c" strokeWidth={2} name="Backfill & Compaction" dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">⚠️ The LOB from R1 must be revised.</div>
-          </div>
+            <h3 className="font-bold mb-3">📊 Your R1 Schedule</h3>
 
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="font-bold mb-2">📐 Buffer Formulas</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="bg-blue-50 p-3 rounded"><strong>Simple Buffer</strong> (slower follows faster):<br /><code>Start = Prev Start + Buffer</code></div>
-              <div className="bg-orange-50 p-3 rounded"><strong>Delayed Buffer</strong> (faster follows slower):<br /><code>Start = Prev End + Buffer - Duration + 1</code></div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="font-bold mb-2">📝 Revise Schedule ({DEFAULT_BUFFER}-day Buffer)</h3>
-            <table className="w-full text-sm border">
+            {/* R1 Schedule Table */}
+            <table className="w-full text-sm border mb-4">
               <thead className="bg-gray-100">
                 <tr>
-                  <th className="px-2 py-2 border">Activity</th>
-                  <th className="px-2 py-2 border">Rate (ft/day)</th>
-                  <th className="px-2 py-2 border">Duration (days)</th>
-                  <th className="px-2 py-2 border bg-yellow-50">Start</th>
-                  <th className="px-2 py-2 border bg-yellow-50">End</th>
+                  <th className="px-2 py-2 border text-left">Activity</th>
+                  <th className="px-2 py-2 border text-center">Rate (ft/day)</th>
+                  <th className="px-2 py-2 border text-center">Duration</th>
+                  <th className="px-2 py-2 border text-center">Start</th>
+                  <th className="px-2 py-2 border text-center">End</th>
                 </tr>
               </thead>
               <tbody>
@@ -1018,78 +1340,200 @@ export default function LOBGame() {
                   <td className="px-2 py-2 border text-center">1</td>
                   <td className="px-2 py-2 border text-center">{MOB_DAYS}</td>
                 </tr>
-
                 <tr className="text-blue-700">
                   <td className="px-2 py-2 border">Excavation & Bedding</td>
                   <td className="px-2 py-2 border text-center">{CREWS.exc.rate}</td>
                   <td className="px-2 py-2 border text-center">{dur.exc}</td>
-                  <td className="px-2 py-2 border text-center">
-                    <InputCell value={r2Input.excS} onChange={(e) => setR2Input({ ...r2Input, excS: e.target.value })} correct={r2Correct.excS} submitted={r2Validated} />
-                  </td>
-                  <td className="px-2 py-2 border text-center">
-                    <InputCell value={r2Input.excE} onChange={(e) => setR2Input({ ...r2Input, excE: e.target.value })} correct={r2Correct.excE} submitted={r2Validated} />
-                  </td>
+                  <td className="px-2 py-2 border text-center font-bold">{r1Student.excS}</td>
+                  <td className="px-2 py-2 border text-center font-bold">{r1Student.excE}</td>
                 </tr>
-
                 <tr className="text-green-700">
                   <td className="px-2 py-2 border">Pipe Laying & Alignment</td>
                   <td className="px-2 py-2 border text-center">{CREWS.pipe.rate}</td>
                   <td className="px-2 py-2 border text-center">{dur.pipe}</td>
-                  <td className="px-2 py-2 border text-center">
-                    <InputCell value={r2Input.pipeS} onChange={(e) => setR2Input({ ...r2Input, pipeS: e.target.value })} correct={r2Correct.pipeS} submitted={r2Validated} />
-                  </td>
-                  <td className="px-2 py-2 border text-center">
-                    <InputCell value={r2Input.pipeE} onChange={(e) => setR2Input({ ...r2Input, pipeE: e.target.value })} correct={r2Correct.pipeE} submitted={r2Validated} />
-                  </td>
+                  <td className="px-2 py-2 border text-center font-bold">{r1Student.pipeS}</td>
+                  <td className="px-2 py-2 border text-center font-bold">{r1Student.pipeE}</td>
                 </tr>
-
                 <tr className="text-orange-700">
                   <td className="px-2 py-2 border">Backfill & Compaction</td>
                   <td className="px-2 py-2 border text-center">{CREWS.back.rate}</td>
                   <td className="px-2 py-2 border text-center">{dur.back}</td>
-                  <td className="px-2 py-2 border text-center">
-                    <InputCell value={r2Input.backS} onChange={(e) => setR2Input({ ...r2Input, backS: e.target.value })} correct={r2Correct.backS} submitted={r2Validated} />
-                  </td>
-                  <td className="px-2 py-2 border text-center">
-                    <InputCell value={r2Input.backE} onChange={(e) => setR2Input({ ...r2Input, backE: e.target.value })} correct={r2Correct.backE} submitted={r2Validated} />
-                  </td>
+                  <td className="px-2 py-2 border text-center font-bold">{r1Student.backS}</td>
+                  <td className="px-2 py-2 border text-center font-bold">{r1Student.backE}</td>
                 </tr>
               </tbody>
             </table>
 
-            <button onClick={() => setR2Validated(true)} className="mt-3 px-4 py-2 bg-blue-500 text-white rounded font-bold">
-              Check Answers
-            </button>
-
-            {r2Validated && !r2IsCorrect && <div className="mt-2 p-2 bg-red-100 text-red-700 rounded">❌ Some answers incorrect. Try again.</div>}
-            {r2Validated && r2IsCorrect && <div className="mt-2 p-2 bg-green-100 text-green-700 rounded">✅ All correct!</div>}
-          </div>
-
-          {r2IsCorrect && (<>
-            <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="font-bold mb-2">Revised LOB Chart</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={genLOB([r2Student])} margin={{ top: 10, right: 30, bottom: 30, left: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" label={{ value: 'Duration (day)', position: 'insideBottom', offset: -5 }} />
-                  <YAxis domain={[0, PROJECT_LENGTH]} tickFormatter={v => (v / 1000).toFixed(0) + 'k'} label={{ value: 'Distance (ft)', angle: -90, position: 'insideLeft', offset: 10 }} />
-                  <Tooltip />
-                  <Legend verticalAlign="top" height={36} />
-                  <Line type="linear" dataKey="exc0" stroke="#2563eb" strokeWidth={2} name="Excavation & Bedding" dot={false} />
-                  <Line type="linear" dataKey="pipe0" stroke="#16a34a" strokeWidth={2} name="Pipe Laying & Alignment" dot={false} />
-                  <Line type="linear" dataKey="back0" stroke="#ea580c" strokeWidth={2} name="Backfill & Compaction" dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
+            {/* Side-by-side: Bar Chart vs LOB */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="border rounded-lg p-3">
+                <h4 className="font-bold text-sm mb-2 text-center">📊 Bar Chart</h4>
+                <BarChartR1 schedule={r1Student} />
+                <div className="mt-2 text-center">
+                  <span className="inline-block px-2 py-1 bg-green-100 text-green-700 text-xs rounded font-medium">✅ Looks fine?</span>
+                </div>
+              </div>
+              <div className="border rounded-lg p-3">
+                <h4 className="font-bold text-sm mb-2 text-center">📈 Line of Balance (LOB)</h4>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={genLOB([r1Student])} margin={{ top: 5, right: 20, bottom: 25, left: 40 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="day" tick={{ fontSize: 10 }} label={{ value: 'Days', position: 'insideBottom', offset: -5, fontSize: 10 }} />
+                    <YAxis domain={[0, PROJECT_LENGTH]} tickFormatter={v => (v / 1000).toFixed(0) + 'k'} tick={{ fontSize: 10 }} label={{ value: 'ft', angle: -90, position: 'insideLeft', offset: 10, fontSize: 10 }} />
+                    <Line type="linear" dataKey="exc0" stroke="#2563eb" strokeWidth={2} dot={false} />
+                    <Line type="linear" dataKey="pipe0" stroke="#16a34a" strokeWidth={2} dot={false} />
+                    <Line type="linear" dataKey="back0" stroke="#ea580c" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+                <div className="mt-2 text-center">
+                  <span className="inline-block px-2 py-1 bg-red-100 text-red-700 text-xs rounded font-medium">❌ Lines cross = CONFLICT!</span>
+                </div>
+              </div>
             </div>
 
+            {/* Flash Card: Why the difference? */}
+            <div className="mt-4">
+              <FlashCard title="Why the difference?" icon="💡" isOpen={r2FlashCards.whyProblem} onToggle={() => setR2FlashCards(p => ({ ...p, whyProblem: !p.whyProblem }))}>
+                <ul className="space-y-1">
+                  <li>• <strong>Bar Chart:</strong> Shows only TIME (when activities happen)</li>
+                  <li>• <strong>LOB:</strong> Shows TIME + LOCATION (where crews are along the pipeline)</li>
+                  <li>• Crossing lines mean crews are at the same location at the same time</li>
+                  <li>• Example: Backfill catches up to Pipe Laying — you can't backfill pipe that isn't laid!</li>
+                </ul>
+              </FlashCard>
+            </div>
+          </div>
+
+          {/* Section 2: Revise with LOB */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <h3 className="font-bold mb-3">📈 Revise with Line of Balance (LOB)</h3>
+
+            {/* Flash Cards */}
+            <div className="space-y-2 mb-4">
+              <FlashCard title="What is LOB?" icon="📚" isOpen={r2FlashCards.whatIsLOB} onToggle={() => setR2FlashCards(p => ({ ...p, whatIsLOB: !p.whatIsLOB }))}>
+                <ul className="space-y-1">
+                  <li>• LOB plots <strong>Distance</strong> (Y-axis) vs <strong>Time</strong> (X-axis)</li>
+                  <li>• Line slope = production rate (steeper = faster crew)</li>
+                  <li>• <strong>Lines crossing = CONFLICT</strong> (crews at same location)</li>
+                  <li>• <strong>Parallel lines = safe schedule</strong></li>
+                </ul>
+              </FlashCard>
+              <FlashCard title="How to fix conflicts?" icon="🔧" isOpen={r2FlashCards.howToFix} onToggle={() => setR2FlashCards(p => ({ ...p, howToFix: !p.howToFix }))}>
+                <div className="space-y-2">
+                  <p>Add <strong>BUFFERS</strong> (spacing in days) between activities:</p>
+                  <div className="bg-blue-50 p-2 rounded text-sm">
+                    <strong>Slower follows faster:</strong> Start = Prev Start + Buffer
+                  </div>
+                  <div className="bg-orange-50 p-2 rounded text-sm">
+                    <strong>Faster follows slower:</strong> Start = Prev End + Buffer - Duration + 1
+                  </div>
+                </div>
+              </FlashCard>
+            </div>
+
+            {/* Draggable LOB Chart */}
+            {r2Schedule && (
+              <DraggableLOBChart
+                r1Schedule={r1Student}
+                r2Schedule={r2Schedule}
+                onR2Change={setR2Schedule}
+                durations={dur}
+              />
+            )}
+
+            {/* R2 Schedule Table (auto-updated) */}
+            <div className="mt-4">
+              <h4 className="font-bold text-sm mb-2">R2 Schedule (auto-updated from chart):</h4>
+              <table className="w-full text-sm border">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-2 py-2 border text-left">Activity</th>
+                    <th className="px-2 py-2 border text-center">Rate (ft/day)</th>
+                    <th className="px-2 py-2 border text-center">Duration</th>
+                    <th className="px-2 py-2 border text-center">Start</th>
+                    <th className="px-2 py-2 border text-center">End</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-gray-50">
+                    <td className="px-2 py-2 border">Mobilization</td>
+                    <td className="px-2 py-2 border text-center">-</td>
+                    <td className="px-2 py-2 border text-center">{MOB_DAYS}</td>
+                    <td className="px-2 py-2 border text-center">1</td>
+                    <td className="px-2 py-2 border text-center">{MOB_DAYS}</td>
+                  </tr>
+                  <tr className="text-blue-700">
+                    <td className="px-2 py-2 border">Excavation & Bedding</td>
+                    <td className="px-2 py-2 border text-center">{CREWS.exc.rate}</td>
+                    <td className="px-2 py-2 border text-center">{dur.exc}</td>
+                    <td className="px-2 py-2 border text-center font-bold">{r2Student.excS}</td>
+                    <td className="px-2 py-2 border text-center font-bold">{r2Student.excE}</td>
+                  </tr>
+                  <tr className="text-green-700">
+                    <td className="px-2 py-2 border">Pipe Laying & Alignment</td>
+                    <td className="px-2 py-2 border text-center">{CREWS.pipe.rate}</td>
+                    <td className="px-2 py-2 border text-center">{dur.pipe}</td>
+                    <td className="px-2 py-2 border text-center font-bold">{r2Student.pipeS}</td>
+                    <td className="px-2 py-2 border text-center font-bold">{r2Student.pipeE}</td>
+                  </tr>
+                  <tr className="text-orange-700">
+                    <td className="px-2 py-2 border">Backfill & Compaction</td>
+                    <td className="px-2 py-2 border text-center">{CREWS.back.rate}</td>
+                    <td className="px-2 py-2 border text-center">{dur.back}</td>
+                    <td className="px-2 py-2 border text-center font-bold">{r2Student.backS}</td>
+                    <td className="px-2 py-2 border text-center font-bold">{r2Student.backE}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div className="mt-3 p-3 bg-blue-50 rounded text-center">
+                <span className="text-gray-600">Project Duration:</span>
+                <span className="ml-2 text-xl font-bold text-blue-600">{r2Student.end} days</span>
+              </div>
+            </div>
+
+            {/* Check Answer */}
+            <div className="mt-4">
+              <button onClick={() => setR2Validated(true)} className="px-4 py-2 bg-blue-500 text-white rounded font-bold hover:bg-blue-600">
+                Check Answer
+              </button>
+
+              {r2Validated && !r2IsCorrect && (
+                <div className="mt-2 p-3 bg-red-100 text-red-700 rounded">
+                  ❌ Not correct. Ensure:
+                  <ul className="ml-4 mt-1 text-sm">
+                    <li>• Excavation starts on Day {r2Correct.excS} {r2Student.excS === r2Correct.excS ? '✅' : '❌'}</li>
+                    <li>• Pipe Laying starts on Day {r2Correct.pipeS} ({DEFAULT_BUFFER}-day buffer) {r2Student.pipeS === r2Correct.pipeS ? '✅' : '❌'}</li>
+                    <li>• Backfill starts on Day {r2Correct.backS} ({DEFAULT_BUFFER}-day buffer) {r2Student.backS === r2Correct.backS ? '✅' : '❌'}</li>
+                  </ul>
+                </div>
+              )}
+
+              {r2Validated && r2IsCorrect && (
+                <div className="mt-2 p-3 bg-green-100 text-green-700 rounded">
+                  ✅ Correct! All criteria met.
+                  <ul className="ml-4 mt-1 text-sm">
+                    <li>• Excavation starts Day {r2Correct.excS} ✓</li>
+                    <li>• {DEFAULT_BUFFER}-day buffer between Excavation and Pipe Laying ✓</li>
+                    <li>• {DEFAULT_BUFFER}-day buffer between Pipe Laying and Backfill ✓</li>
+                    <li>• No conflicts (lines don't cross) ✓</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Section 3: Budget (after correct) */}
+          {r2Validated && r2IsCorrect && (
             <div className="bg-white rounded-lg shadow p-4">
               <h3 className="font-bold mb-2">💰 Budget (Auto-Calculated)</h3>
               <BudgetTable cost={r2Cost} durExc={dur.exc} durPipe={dur.pipe} durBack={dur.back} costExc={CREWS.exc.cost} costPipe={CREWS.pipe.cost} costBack={CREWS.back.cost} />
             </div>
-          </>)}
+          )}
 
-          <button onClick={nextRound} disabled={!r2IsCorrect} className="w-full bg-green-600 text-white py-3 rounded-lg font-bold disabled:bg-gray-300">
-            {r2IsCorrect ? 'Complete R2 → R3' : 'Answer correctly to proceed'}
+          {/* Complete Button */}
+          <button onClick={nextRound} disabled={!r2IsCorrect || !r2Validated} className="w-full bg-green-600 text-white py-3 rounded-lg font-bold disabled:bg-gray-300">
+            {r2Validated && r2IsCorrect ? 'Complete R2 → R3' : 'Check answer to proceed'}
           </button>
         </>)}
 
