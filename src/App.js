@@ -911,41 +911,19 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
 
   return (
     <div>
-      {/* Fixed Legend */}
-      <div className="bg-gray-50 rounded-lg p-3 mb-3 text-xs">
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <div className="font-bold text-gray-500 mb-1">R1 (original):</div>
-            {['exc', 'pipe', 'back'].map(id => (
-              <div key={`r1-leg-${id}`} className="flex items-center gap-2 mb-0.5">
-                <svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke={colors[id].stroke} strokeWidth="2" strokeDasharray="4,3" opacity="0.5" /></svg>
-                <span style={{ color: colors[id].stroke }}>{colors[id].name}</span>
-              </div>
-            ))}
-          </div>
-          <div>
-            <div className="font-bold text-gray-500 mb-1">R2 (drag to revise):</div>
-            {['exc', 'pipe', 'back'].map(id => (
-              <div key={`r2-leg-${id}`} className="flex items-center gap-2 mb-0.5">
-                <svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke={colors[id].stroke} strokeWidth="3" /></svg>
-                <span style={{ color: colors[id].stroke }}>{colors[id].name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* SVG Chart */}
-      <div className="relative">
-        <svg
-          ref={chartRef}
-          width={CHART_WIDTH}
-          height={CHART_HEIGHT}
-          className="bg-white border rounded"
-          style={{ maxWidth: '100%' }}
-          onMouseMove={handleChartHover}
-          onMouseLeave={() => !dragging && setHover(null)}
-        >
+      {/* Chart + Legend side-by-side */}
+      <div className="flex gap-3">
+        {/* SVG Chart (fills remaining space) */}
+        <div className="relative flex-1 min-w-0">
+          <svg
+            ref={chartRef}
+            width={CHART_WIDTH}
+            height={CHART_HEIGHT}
+            className="bg-white border rounded"
+            style={{ maxWidth: '100%' }}
+            onMouseMove={handleChartHover}
+            onMouseLeave={() => !dragging && setHover(null)}
+          >
           {/* Grid */}
           {xTicks.map(day => (
             <line key={`gx-${day}`} x1={dayToX(day)} y1={PADDING.top} x2={dayToX(day)} y2={CHART_HEIGHT - PADDING.bottom} stroke="#f3f4f6" strokeWidth="1" />
@@ -1060,11 +1038,42 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
             ))}
           </div>
         )}
+        </div>
+
+        {/* Legend (right side - desktop) */}
+        <div className="bg-gray-50 rounded-lg p-3 text-xs flex-shrink-0 self-start hidden lg:block" style={{ minWidth: '140px' }}>
+          <div className="font-bold text-gray-500 mb-1.5 border-b pb-1">R1 (original)</div>
+          {['exc', 'pipe', 'back'].map(id => (
+            <div key={`r1-leg-${id}`} className="flex items-center gap-2 mb-1">
+              <svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke={colors[id].stroke} strokeWidth="2" strokeDasharray="4,3" opacity="0.5" /></svg>
+              <span style={{ color: colors[id].stroke }}>{colors[id].name.split(' & ')[0]}</span>
+            </div>
+          ))}
+          <div className="font-bold text-gray-500 mt-3 mb-1.5 border-b pb-1">R2 (drag to revise)</div>
+          {['exc', 'pipe', 'back'].map(id => (
+            <div key={`r2-leg-${id}`} className="flex items-center gap-2 mb-1">
+              <svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke={colors[id].stroke} strokeWidth="3" /></svg>
+              <span style={{ color: colors[id].stroke }}>{colors[id].name.split(' & ')[0]}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <p className="text-sm text-gray-500 mt-2 text-center">
         🖱️ Drag the solid lines or circles to adjust start days
       </p>
+
+      {/* Compact legend for small screens */}
+      <div className="lg:hidden mt-2 flex flex-wrap gap-x-3 gap-y-1 justify-center text-xs">
+        <span className="text-gray-500 font-bold">R1 ---</span>
+        {['exc', 'pipe', 'back'].map(id => (
+          <span key={`sm-r1-${id}`} style={{ color: colors[id].stroke }}>{colors[id].name.split(' & ')[0]}</span>
+        ))}
+        <span className="text-gray-500 font-bold ml-2">R2 ─</span>
+        {['exc', 'pipe', 'back'].map(id => (
+          <span key={`sm-r2-${id}`} style={{ color: colors[id].stroke }}>{colors[id].name.split(' & ')[0]}</span>
+        ))}
+      </div>
     </div>
   );
 }
