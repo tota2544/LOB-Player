@@ -792,8 +792,8 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
   const [hover, setHover] = useState(null);
 
   const CHART_WIDTH = 700;
-  const CHART_HEIGHT = 360;
-  const PADDING = { top: 25, right: 30, bottom: 50, left: 70 };
+  const CHART_HEIGHT = 420;
+  const PADDING = { top: 40, right: 30, bottom: 50, left: 70 };
   const PLOT_WIDTH = CHART_WIDTH - PADDING.left - PADDING.right;
   const PLOT_HEIGHT = CHART_HEIGHT - PADDING.top - PADDING.bottom;
   const MAX_DAY = 150;
@@ -894,17 +894,19 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
   const BufferArrow = ({ x1, x2, y, label, isOk }) => {
     const color = isOk ? '#16a34a' : '#ef4444';
     const midX = (x1 + x2) / 2;
-    const arrowSize = 4;
+    const arrowSize = 6;
+    const width = Math.abs(x2 - x1);
+    if (width < 3) return null;
     return (
       <g>
-        <line x1={x1} y1={y} x2={x2} y2={y} stroke={color} strokeWidth="2" />
+        <line x1={x1} y1={y} x2={x2} y2={y} stroke={color} strokeWidth="2.5" />
         {/* Left arrowhead */}
         <polygon points={`${x1},${y} ${x1 + arrowSize},${y - arrowSize} ${x1 + arrowSize},${y + arrowSize}`} fill={color} />
         {/* Right arrowhead */}
         <polygon points={`${x2},${y} ${x2 - arrowSize},${y - arrowSize} ${x2 - arrowSize},${y + arrowSize}`} fill={color} />
         {/* Label background */}
-        <rect x={midX - 22} y={y - 18} width="44" height="14" rx="3" fill={isOk ? '#dcfce7' : '#fee2e2'} stroke={color} strokeWidth="0.5" />
-        <text x={midX} y={y - 8} textAnchor="middle" fontSize="9" fill={color} fontWeight="bold">{label}</text>
+        <rect x={midX - 20} y={y - 22} width="40" height="18" rx="4" fill={isOk ? '#dcfce7' : '#fee2e2'} stroke={color} strokeWidth="1" />
+        <text x={midX} y={y - 10} textAnchor="middle" fontSize="11" fill={color} fontWeight="bold">{label}</text>
       </g>
     );
   };
@@ -975,23 +977,23 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
             </g>
           ))}
 
-          {/* Buffer arrows - Exc→Pipe at bottom (y=0) */}
+          {/* Buffer arrows - Exc→Pipe at bottom (inside plot, above 0k) */}
           {r2Lines.exc.start > 0 && r2Lines.pipe.start > 0 && (
             <BufferArrow
               x1={dayToX(r2Lines.exc.start)}
               x2={dayToX(r2Lines.pipe.start)}
-              y={distToY(0) + 15}
+              y={distToY(0) - 15}
               label={`${buffer1}d`}
               isOk={buffer1Ok}
             />
           )}
 
-          {/* Buffer arrows - Pipe→Back at top (y=PROJECT_LENGTH) */}
+          {/* Buffer arrows - Pipe→Back at top (inside plot, below 16k) */}
           {r2Lines.pipe.end > 0 && r2Lines.back.end > 0 && (
             <BufferArrow
               x1={dayToX(r2Lines.pipe.end)}
               x2={dayToX(r2Lines.back.end)}
-              y={distToY(PROJECT_LENGTH) - 15}
+              y={distToY(PROJECT_LENGTH) + 20}
               label={`${buffer2}d`}
               isOk={buffer2Ok}
             />
