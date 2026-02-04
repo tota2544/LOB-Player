@@ -34,13 +34,13 @@ const EQUIPMENT = {
 };
 
 // -------------------- R1 DRAG SCHEDULER HELPERS/COMPONENTS --------------------
-const DURATIONS = {
+const CORRECT_DURATIONS = {
   exc: Math.ceil(PROJECT_LENGTH / CREWS.exc.rate),
   pipe: Math.ceil(PROJECT_LENGTH / CREWS.pipe.rate),
   back: Math.ceil(PROJECT_LENGTH / CREWS.back.rate),
 };
 
-function DraggableBarChart({ schedule, onScheduleChange }) {
+function DraggableBarChart({ schedule, durations, onScheduleChange }) {
   const chartRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [dragOffset, setDragOffset] = useState(0);
@@ -55,13 +55,14 @@ function DraggableBarChart({ schedule, onScheduleChange }) {
   const CHART_HEIGHT = 4 * (BAR_HEIGHT + BAR_GAP) + 60;
 
   const dayToPixel = (day) => CHART_PADDING_LEFT + day * PIXELS_PER_DAY;
-  const pixelToDay = (pixel) => Math.max(MOB_DAYS + 1, Math.min(Math.round((pixel - CHART_PADDING_LEFT) / PIXELS_PER_DAY), MAX_DAY - 20));
+  const pixelToDay = (pixel) => Math.max(1, Math.min(Math.round((pixel - CHART_PADDING_LEFT) / PIXELS_PER_DAY), MAX_DAY - 20));
 
   const handleMouseDown = (barType, e) => {
     e.preventDefault();
     const rect = chartRef.current.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     let currentStart = barType === 'exc' ? schedule.excStart : barType === 'pipe' ? schedule.pipeStart : schedule.backStart;
+    if (!currentStart || currentStart < 1) currentStart = 1;
     setDragOffset(mouseX - dayToPixel(currentStart));
     setDragging(barType);
   };
@@ -84,11 +85,16 @@ function DraggableBarChart({ schedule, onScheduleChange }) {
     return () => { window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); };
   }, [dragging, handleMouseMove, handleMouseUp]);
 
+  // Only show bars if duration is valid
+  const excDur = durations.exc > 0 ? durations.exc : 0;
+  const pipeDur = durations.pipe > 0 ? durations.pipe : 0;
+  const backDur = durations.back > 0 ? durations.back : 0;
+
   const bars = [
-    { id: 'mob', label: 'Mobilization', start: 1, duration: MOB_DAYS, color: 'bg-gray-400', locked: true },
-    { id: 'exc', label: 'Excavation & Bedding', start: schedule.excStart, duration: DURATIONS.exc, color: 'bg-blue-500', locked: false },
-    { id: 'pipe', label: 'Pipe Laying & Alignment', start: schedule.pipeStart, duration: DURATIONS.pipe, color: 'bg-green-500', locked: false },
-    { id: 'back', label: 'Backfill & Compaction', start: schedule.backStart, duration: DURATIONS.back, color: 'bg-orange-500', locked: false },
+    { id: 'mob', label: 'Mobilization', start: 1, duration: MOB_DAYS, color: 'bg-gray-400', locked: true, show: true },
+    { id: 'exc', label: 'Excavation & Bedding', start: schedule.excStart || 0, duration: excDur, color: 'bg-blue-500', locked: false, show: excDur > 0 && schedule.excStart > 0 },
+    { id: 'pipe', label: 'Pipe Laying & Alignment', start: schedule.pipeStart || 0, duration: pipeDur, color: 'bg-green-500', locked: false, show: pipeDur > 0 && schedule.pipeStart > 0 },
+    { id: 'back', label: 'Backfill & Compaction', start: schedule.backStart || 0, duration: backDur, color: 'bg-orange-500', locked: false, show: backDur > 0 && schedule.backStart > 0 },
   ];
 
   const xTicks = [0, 20, 40, 60, 80, 100, 120, 140, 160];
@@ -104,7 +110,7 @@ function DraggableBarChart({ schedule, onScheduleChange }) {
       </div>
 
       {/* Chart */}
-      <div ref={chartRef} className="relative bg-gray-50 rounded-lg border" style={{ width: CHART_WIDTH, height: CHART_HEIGHT, margin: '0 auto' }}>
+      <div ref={chartRef} className="relative bg-gray-50 rounded-lg border overflow-hidden" style={{ width: CHART_WIDTH, height: CHART_HEIGHT, margin: '0 auto' }}>
         {/* Y-axis label */}
         <div className="absolute text-sm font-medium text-gray-600" style={{ left: 8, top: '50%', transform: 'rotate(-90deg) translateX(-50%)', transformOrigin: 'left center' }}>Activity</div>
 
@@ -120,13 +126,22 @@ function DraggableBarChart({ schedule, onScheduleChange }) {
 
         {/* Bars */}
         {bars.map((bar, index) => (
-          <div
-            key={bar.id}
-            className={`absolute ${bar.color} rounded flex items-center justify-center text-white text-xs font-bold shadow ${bar.locked ? 'cursor-not-allowed opacity-80' : 'cursor-grab active:cursor-grabbing hover:shadow-lg'} ${dragging === bar.id ? 'ring-4 ring-yellow-400 shadow-xl z-10' : ''}`}
-            style={{ left: dayToPixel(bar.start), width: Math.max(bar.duration * PIXELS_PER_DAY, 40), height: BAR_HEIGHT, top: index * (BAR_HEIGHT + BAR_GAP) + 20 }}
-            onMouseDown={bar.locked ? undefined : (e) => handleMouseDown(bar.id, e)}>
-            {bar.locked && <span className="mr-1">🔒</span>}{bar.start} - {bar.start + bar.duration - 1}
-          </div>
+          bar.show ? (
+            <div
+              key={bar.id}
+              className={`absolute ${bar.color} rounded flex items-center justify-center text-white text-xs font-bold shadow ${bar.locked ? 'cursor-not-allowed opacity-80' : 'cursor-grab active:cursor-grabbing hover:shadow-lg'} ${dragging === bar.id ? 'ring-4 ring-yellow-400 shadow-xl z-10' : ''}`}
+              style={{ left: dayToPixel(bar.start), width: Math.max(bar.duration * PIXELS_PER_DAY, 40), height: BAR_HEIGHT, top: index * (BAR_HEIGHT + BAR_GAP) + 20 }}
+              onMouseDown={bar.locked ? undefined : (e) => handleMouseDown(bar.id, e)}>
+              {bar.locked && <span className="mr-1">🔒</span>}{bar.start} - {bar.start + bar.duration - 1}
+            </div>
+          ) : (
+            <div
+              key={bar.id}
+              className="absolute bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs border-2 border-dashed border-gray-300"
+              style={{ left: CHART_PADDING_LEFT, width: 100, height: BAR_HEIGHT, top: index * (BAR_HEIGHT + BAR_GAP) + 20 }}>
+              Enter schedule below
+            </div>
+          )
         ))}
 
         {/* X-axis ticks and labels */}
@@ -142,64 +157,291 @@ function DraggableBarChart({ schedule, onScheduleChange }) {
 }
 
 function Round1({ onComplete }) {
-  const [schedule, setSchedule] = useState({ excStart: MOB_DAYS + 1, pipeStart: MOB_DAYS + 1, backStart: MOB_DAYS + 1 });
+  // Duration inputs (student calculates)
+  const [durInput, setDurInput] = useState({ exc: '', pipe: '', back: '' });
+  
+  // Schedule inputs (student inputs start, end is auto-calculated)
+  const [schedule, setSchedule] = useState({ excStart: '', pipeStart: '', backStart: '' });
 
-  const fullSchedule = useMemo(() => ({
-    excS: schedule.excStart, excE: schedule.excStart + DURATIONS.exc - 1,
-    pipeS: schedule.pipeStart, pipeE: schedule.pipeStart + DURATIONS.pipe - 1,
-    backS: schedule.backStart, backE: schedule.backStart + DURATIONS.back - 1,
-    end: Math.max(schedule.excStart + DURATIONS.exc - 1, schedule.pipeStart + DURATIONS.pipe - 1, schedule.backStart + DURATIONS.back - 1),
-  }), [schedule]);
+  // Parse durations
+  const durations = useMemo(() => ({
+    exc: parseInt(durInput.exc) || 0,
+    pipe: parseInt(durInput.pipe) || 0,
+    back: parseInt(durInput.back) || 0,
+  }), [durInput]);
+
+  // Parse schedule with auto-calculated ends
+  const fullSchedule = useMemo(() => {
+    const excStart = parseInt(schedule.excStart) || 0;
+    const pipeStart = parseInt(schedule.pipeStart) || 0;
+    const backStart = parseInt(schedule.backStart) || 0;
+    
+    const excEnd = excStart > 0 && durations.exc > 0 ? excStart + durations.exc - 1 : 0;
+    const pipeEnd = pipeStart > 0 && durations.pipe > 0 ? pipeStart + durations.pipe - 1 : 0;
+    const backEnd = backStart > 0 && durations.back > 0 ? backStart + durations.back - 1 : 0;
+    
+    const projectEnd = Math.max(excEnd, pipeEnd, backEnd, MOB_DAYS);
+    
+    return {
+      excS: excStart, excE: excEnd,
+      pipeS: pipeStart, pipeE: pipeEnd,
+      backS: backStart, backE: backEnd,
+      end: projectEnd
+    };
+  }, [schedule, durations]);
+
+  // Handle bar drag - updates schedule
+  const handleBarDrag = useCallback((newSchedule) => {
+    setSchedule({
+      excStart: newSchedule.excStart > 0 ? String(newSchedule.excStart) : schedule.excStart,
+      pipeStart: newSchedule.pipeStart > 0 ? String(newSchedule.pipeStart) : schedule.pipeStart,
+      backStart: newSchedule.backStart > 0 ? String(newSchedule.backStart) : schedule.backStart,
+    });
+  }, [schedule]);
+
+  // Check if all inputs are filled
+  const allDurationsFilled = durations.exc > 0 && durations.pipe > 0 && durations.back > 0;
+  const allScheduleFilled = fullSchedule.excS > 0 && fullSchedule.pipeS > 0 && fullSchedule.backS > 0;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
         <h3 className="font-bold text-xl text-blue-900">📋 Round 1: Create Your Schedule</h3>
-        <p className="text-gray-600 mt-1">Schedule three crews to complete the pipeline. Crews can start working after mobilization (Day 15).</p>
+        <p className="text-gray-600 mt-1">
+          In this round, you will create a bar chart schedule for the pipeline project. 
+          Calculate each activity's duration, then input start days to build your schedule.
+        </p>
       </div>
 
-      {/* Crew Sequence */}
+      {/* Section 1: Activity Sequence & Duration Calculation */}
       <div className="bg-white rounded-lg shadow p-5">
-        <div className="flex justify-center items-center gap-4 text-center">
-          <div className="flex flex-col items-center"><span className="text-3xl">⛏️</span><span className="font-medium text-sm">Excavation &<br/>Bedding</span><span className="text-blue-600 font-bold">{DURATIONS.exc} days</span></div>
+        <h4 className="font-bold text-gray-700 mb-4">📐 Activity Sequence & Duration Calculation</h4>
+        
+        {/* Sequence Visual */}
+        <div className="flex justify-center items-center gap-4 text-center mb-6">
+          <div className="flex flex-col items-center">
+            <span className="text-3xl">⛏️</span>
+            <span className="font-medium text-sm">Excavation &<br/>Bedding</span>
+          </div>
           <span className="text-2xl text-gray-400">→</span>
-          <div className="flex flex-col items-center"><span className="text-3xl">🔧</span><span className="font-medium text-sm">Pipe Laying &<br/>Alignment</span><span className="text-green-600 font-bold">{DURATIONS.pipe} days</span></div>
+          <div className="flex flex-col items-center">
+            <span className="text-3xl">🔧</span>
+            <span className="font-medium text-sm">Pipe Laying &<br/>Alignment</span>
+          </div>
           <span className="text-2xl text-gray-400">→</span>
-          <div className="flex flex-col items-center"><span className="text-3xl">🚜</span><span className="font-medium text-sm">Backfill &<br/>Compaction</span><span className="text-orange-600 font-bold">{DURATIONS.back} days</span></div>
+          <div className="flex flex-col items-center">
+            <span className="text-3xl">🚜</span>
+            <span className="font-medium text-sm">Backfill &<br/>Compaction</span>
+          </div>
         </div>
-      </div>
 
-      {/* Duration Calculation Table */}
-      <div className="bg-white rounded-lg shadow p-5">
-        <h4 className="font-bold text-gray-700 mb-3">📐 How we calculated the durations:</h4>
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100"><tr><th className="px-4 py-2 text-left">Activity</th><th className="px-4 py-2 text-center">Project Length</th><th className="px-4 py-2 text-center">÷</th><th className="px-4 py-2 text-center">Rate</th><th className="px-4 py-2 text-center">=</th><th className="px-4 py-2 text-center">Duration</th></tr></thead>
+        {/* Formula Box */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+          <div className="font-bold text-yellow-800 mb-2">Formula: Duration = Project Length ÷ Rate</div>
+          <div className="text-sm text-yellow-700">
+            <strong>Example:</strong> Excavation has rate {CREWS.exc.rate} ft/day<br/>
+            Duration = {PROJECT_LENGTH.toLocaleString()} ft ÷ {CREWS.exc.rate} ft/day = <strong>{CORRECT_DURATIONS.exc} days</strong>
+          </div>
+        </div>
+
+        {/* Duration Calculation Table */}
+        <p className="text-sm text-gray-600 mb-3">Calculate the duration for each activity:</p>
+        <table className="w-full text-sm border">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="px-4 py-2 border text-left">Activity</th>
+              <th className="px-4 py-2 border text-center">Rate (ft/day)</th>
+              <th className="px-4 py-2 border text-center bg-yellow-50">Duration (days)</th>
+            </tr>
+          </thead>
           <tbody>
-            <tr className="border-b"><td className="px-4 py-3 font-medium">⛏️ Excavation & Bedding</td><td className="px-4 py-3 text-center">{PROJECT_LENGTH.toLocaleString()} ft</td><td className="px-4 py-3 text-center">÷</td><td className="px-4 py-3 text-center">{CREWS.exc.rate} ft/day</td><td className="px-4 py-3 text-center">=</td><td className="px-4 py-3 text-center font-bold text-blue-600">{DURATIONS.exc} days</td></tr>
-            <tr className="border-b"><td className="px-4 py-3 font-medium">🔧 Pipe Laying & Alignment</td><td className="px-4 py-3 text-center">{PROJECT_LENGTH.toLocaleString()} ft</td><td className="px-4 py-3 text-center">÷</td><td className="px-4 py-3 text-center">{CREWS.pipe.rate} ft/day</td><td className="px-4 py-3 text-center">=</td><td className="px-4 py-3 text-center font-bold text-green-600">{DURATIONS.pipe} days</td></tr>
-            <tr><td className="px-4 py-3 font-medium">🚜 Backfill & Compaction</td><td className="px-4 py-3 text-center">{PROJECT_LENGTH.toLocaleString()} ft</td><td className="px-4 py-3 text-center">÷</td><td className="px-4 py-3 text-center">{CREWS.back.rate} ft/day</td><td className="px-4 py-3 text-center">=</td><td className="px-4 py-3 text-center font-bold text-orange-600">{DURATIONS.back} days</td></tr>
+            <tr>
+              <td className="px-4 py-3 border font-medium">⛏️ Excavation & Bedding</td>
+              <td className="px-4 py-3 border text-center">{CREWS.exc.rate}</td>
+              <td className="px-4 py-3 border text-center">
+                <input
+                  type="number"
+                  value={durInput.exc}
+                  onChange={(e) => setDurInput({ ...durInput, exc: e.target.value })}
+                  className="w-20 px-2 py-1 border-2 border-blue-300 rounded text-center font-bold"
+                  placeholder="?"
+                />
+              </td>
+            </tr>
+            <tr>
+              <td className="px-4 py-3 border font-medium">🔧 Pipe Laying & Alignment</td>
+              <td className="px-4 py-3 border text-center">{CREWS.pipe.rate}</td>
+              <td className="px-4 py-3 border text-center">
+                <input
+                  type="number"
+                  value={durInput.pipe}
+                  onChange={(e) => setDurInput({ ...durInput, pipe: e.target.value })}
+                  className="w-20 px-2 py-1 border-2 border-green-300 rounded text-center font-bold"
+                  placeholder="?"
+                />
+              </td>
+            </tr>
+            <tr>
+              <td className="px-4 py-3 border font-medium">🚜 Backfill & Compaction</td>
+              <td className="px-4 py-3 border text-center">{CREWS.back.rate}</td>
+              <td className="px-4 py-3 border text-center">
+                <input
+                  type="number"
+                  value={durInput.back}
+                  onChange={(e) => setDurInput({ ...durInput, back: e.target.value })}
+                  className="w-20 px-2 py-1 border-2 border-orange-300 rounded text-center font-bold"
+                  placeholder="?"
+                />
+              </td>
+            </tr>
           </tbody>
         </table>
+        <p className="text-xs text-gray-500 mt-2">* Project Length = {PROJECT_LENGTH.toLocaleString()} ft. Round up to whole days.</p>
       </div>
 
-      {/* Bar Chart */}
+      {/* Section 2: Schedule Table */}
+      <div className="bg-white rounded-lg shadow p-5">
+        <h4 className="font-bold text-gray-700 mb-4">📝 Build Your Schedule</h4>
+        
+        {/* Formula Box */}
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+          <div className="font-bold text-green-800 mb-2">Formula: End = Start + Duration - 1</div>
+          <div className="text-sm text-green-700">
+            <strong>Example:</strong> Excavation starts Day 15, duration {CORRECT_DURATIONS.exc} days<br/>
+            End = 15 + {CORRECT_DURATIONS.exc} - 1 = <strong>Day {15 + CORRECT_DURATIONS.exc - 1}</strong>
+          </div>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-3">Input the Start day for each activity. The End day is calculated automatically.</p>
+        
+        <table className="w-full text-sm border">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="px-3 py-2 border text-left">Activity</th>
+              <th className="px-3 py-2 border text-center">Rate (ft/day)</th>
+              <th className="px-3 py-2 border text-center">Duration (days)</th>
+              <th className="px-3 py-2 border text-center bg-yellow-50">Start</th>
+              <th className="px-3 py-2 border text-center">End</th>
+            </tr>
+          </thead>
+          <tbody>
+            {/* Mobilization - Fixed */}
+            <tr className="bg-gray-50">
+              <td className="px-3 py-3 border font-medium">📦 Mobilization</td>
+              <td className="px-3 py-3 border text-center text-gray-400">-</td>
+              <td className="px-3 py-3 border text-center">{MOB_DAYS}</td>
+              <td className="px-3 py-3 border text-center font-bold">1 🔒</td>
+              <td className="px-3 py-3 border text-center font-bold">{MOB_DAYS}</td>
+            </tr>
+            
+            {/* Excavation */}
+            <tr>
+              <td className="px-3 py-3 border font-medium text-blue-700">⛏️ Excavation & Bedding</td>
+              <td className="px-3 py-3 border text-center">{CREWS.exc.rate}</td>
+              <td className="px-3 py-3 border text-center font-bold">{durations.exc || '-'}</td>
+              <td className="px-3 py-3 border text-center">
+                <input
+                  type="number"
+                  value={schedule.excStart}
+                  onChange={(e) => setSchedule({ ...schedule, excStart: e.target.value })}
+                  className="w-16 px-2 py-1 border-2 border-blue-300 rounded text-center font-bold"
+                  placeholder="?"
+                  disabled={!durations.exc}
+                />
+              </td>
+              <td className="px-3 py-3 border text-center font-bold text-blue-600">
+                {fullSchedule.excE > 0 ? fullSchedule.excE : '-'}
+              </td>
+            </tr>
+            
+            {/* Pipe Laying */}
+            <tr>
+              <td className="px-3 py-3 border font-medium text-green-700">🔧 Pipe Laying & Alignment</td>
+              <td className="px-3 py-3 border text-center">{CREWS.pipe.rate}</td>
+              <td className="px-3 py-3 border text-center font-bold">{durations.pipe || '-'}</td>
+              <td className="px-3 py-3 border text-center">
+                <input
+                  type="number"
+                  value={schedule.pipeStart}
+                  onChange={(e) => setSchedule({ ...schedule, pipeStart: e.target.value })}
+                  className="w-16 px-2 py-1 border-2 border-green-300 rounded text-center font-bold"
+                  placeholder="?"
+                  disabled={!durations.pipe}
+                />
+              </td>
+              <td className="px-3 py-3 border text-center font-bold text-green-600">
+                {fullSchedule.pipeE > 0 ? fullSchedule.pipeE : '-'}
+              </td>
+            </tr>
+            
+            {/* Backfill */}
+            <tr>
+              <td className="px-3 py-3 border font-medium text-orange-700">🚜 Backfill & Compaction</td>
+              <td className="px-3 py-3 border text-center">{CREWS.back.rate}</td>
+              <td className="px-3 py-3 border text-center font-bold">{durations.back || '-'}</td>
+              <td className="px-3 py-3 border text-center">
+                <input
+                  type="number"
+                  value={schedule.backStart}
+                  onChange={(e) => setSchedule({ ...schedule, backStart: e.target.value })}
+                  className="w-16 px-2 py-1 border-2 border-orange-300 rounded text-center font-bold"
+                  placeholder="?"
+                  disabled={!durations.back}
+                />
+              </td>
+              <td className="px-3 py-3 border text-center font-bold text-orange-600">
+                {fullSchedule.backE > 0 ? fullSchedule.backE : '-'}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* Project Duration */}
+        <div className="mt-4 p-3 bg-blue-50 rounded-lg text-center">
+          <span className="text-gray-600">Project Duration:</span>
+          <span className="ml-3 text-2xl font-bold text-blue-600">
+            {allScheduleFilled ? `${fullSchedule.end} days` : '- days'}
+          </span>
+        </div>
+      </div>
+
+      {/* Section 3: Bar Chart */}
       <div className="bg-white rounded-lg shadow p-5">
         <div className="flex justify-between items-center mb-4">
-          <h4 className="font-bold text-gray-700">📊 Drag the bars to set start days</h4>
-          <button onClick={() => setSchedule({ excStart: MOB_DAYS + 1, pipeStart: MOB_DAYS + 1, backStart: MOB_DAYS + 1 })} className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300">🔄 Reset</button>
+          <div>
+            <h4 className="font-bold text-gray-700">📊 Bar Chart Schedule</h4>
+            <p className="text-sm text-gray-500">Generated from your schedule above. You can also drag the bars to adjust start days.</p>
+          </div>
+          <button 
+            onClick={() => {
+              setDurInput({ exc: '', pipe: '', back: '' });
+              setSchedule({ excStart: '', pipeStart: '', backStart: '' });
+            }} 
+            className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
+          >
+            🔄 Reset All
+          </button>
         </div>
-        <DraggableBarChart schedule={schedule} onScheduleChange={setSchedule} />
-      </div>
-
-      {/* Project Duration */}
-      <div className="bg-white rounded-lg shadow p-5 text-center">
-        <span className="text-gray-600">Project Duration:</span>
-        <span className="ml-3 text-3xl font-bold text-blue-600">{fullSchedule.end} days</span>
+        
+        <DraggableBarChart 
+          schedule={{
+            excStart: parseInt(schedule.excStart) || 0,
+            pipeStart: parseInt(schedule.pipeStart) || 0,
+            backStart: parseInt(schedule.backStart) || 0,
+          }}
+          durations={durations}
+          onScheduleChange={handleBarDrag}
+        />
       </div>
 
       {/* Complete Button */}
-      <button onClick={() => onComplete(fullSchedule)} className="w-full py-4 bg-blue-600 text-white rounded-lg font-bold text-lg hover:bg-blue-700">Complete R1 →</button>
+      <button 
+        onClick={() => onComplete(fullSchedule)} 
+        className="w-full py-4 bg-blue-600 text-white rounded-lg font-bold text-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+      >
+        Complete R1 →
+      </button>
     </div>
   );
 }
