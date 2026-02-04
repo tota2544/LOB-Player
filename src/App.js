@@ -563,7 +563,7 @@ function BarChartR1({ schedule }) {
               className={`absolute h-full ${bar.color} rounded flex items-center justify-center text-white text-xs`}
               style={{
                 left: `${dayToPercent(bar.start)}%`,
-                width: `${dayToPercent(bar.end - bar.start + 1)}%`
+                width: `${Math.max(dayToPercent(bar.end - bar.start + 1), 5)}%`
               }}
             >
               {bar.start}-{bar.end}
@@ -586,34 +586,237 @@ function BarChartR1({ schedule }) {
   );
 }
 
+// Finds crossing points between two LOB lines
+function findConflicts(schedule, durations) {
+  const conflicts = [];
+  const pairs = [
+    { a: 'exc', b: 'pipe', aName: 'Excavation', bName: 'Pipe Laying' },
+    { a: 'pipe', b: 'back', aName: 'Pipe Laying', bName: 'Backfill' },
+  ];
+  pairs.forEach(({ a, b, aName, bName }) => {
+    const aS = schedule[a + 'S'], aE = schedule[a + 'E'];
+    const bS = schedule[b + 'S'], bE = schedule[b + 'E'];
+    if (!aS || !bS || aS <= 0 || bS <= 0) return;
+    const aRate = PROJECT_LENGTH / (aE - aS);
+    const bRate = PROJECT_LENGTH / (bE - bS);
+    // check if b overtakes a at some point
+    // position of a at day d: (d - aS) * aRate, clamped
+    // position of b at day d: (d - bS) * bRate, clamped
+    const maxEnd = Math.max(aE, bE);
+    let prevDiff = null;
+    for (let d = Math.min(aS, bS); d <= maxEnd; d++) {
+      const aPos = d < aS ? 0 : d > aE ? PROJECT_LENGTH : (d - aS) * aRate;
+      const bPos = d < bS ? 0 : d > bE ? PROJECT_LENGTH : (d - bS) * bRate;
+      const diff = bPos - aPos;
+      if (prevDiff !== null && prevDiff <= 0 && diff > 0) {
+        // crossing happened between d-1 and d
+        const crossDist = Math.round(aPos);
+        conflicts.push({ day: d, dist: crossDist, aName, bName, a, b });
+      }
+      if (prevDiff !== null && prevDiff >= 0 && diff < 0 && prevDiff > 0) {
+        // lines uncrossed
+      }
+      prevDiff = diff;
+    }
+    // also check if b is ahead at any point (for same-start)
+    if (bS <= aS && bE < aE) {
+      // b starts same or earlier but is faster — check first day
+      const bPos1 = bS <= aS ? (aS - bS) * bRate : 0;
+      if (bPos1 > 0) {
+        conflicts.push({ day: aS, dist: 0, aName, bName, a, b });
+      }
+    }
+  });
+  return conflicts;
+}
+
+// SVG LOB Chart for R1 (read-only, with tooltip + conflict markers)
+function LOBChartR1({ schedule, durations }) {
+  const [hover, setHover] = useState(null);
+  const chartRef = useRef(null);
+
+  const CHART_WIDTH = 500;
+  const CHART_HEIGHT = 220;
+  const PADDING = { top: 20, right: 25, bottom: 45, left: 55 };
+  const PLOT_WIDTH = CHART_WIDTH - PADDING.left - PADDING.right;
+  const PLOT_HEIGHT = CHART_HEIGHT - PADDING.top - PADDING.bottom;
+  const MAX_DAY = Math.max(schedule.excE || 0, schedule.pipeE || 0, schedule.backE || 0, 100) + 10;
+
+  const dayToX = (day) => PADDING.left + (day / MAX_DAY) * PLOT_WIDTH;
+  const distToY = (dist) => PADDING.top + PLOT_HEIGHT - (dist / PROJECT_LENGTH) * PLOT_HEIGHT;
+  const xToDay = (x) => Math.round(((x - PADDING.left) / PLOT_WIDTH) * MAX_DAY);
+
+  const getLinePoints = (start, end) => {
+    if (!start || !end || start <= 0) return '';
+    return `${dayToX(start)},${distToY(0)} ${dayToX(end)},${distToY(PROJECT_LENGTH)}`;
+  };
+
+  const getDistAtDay = (start, end, day) => {
+    if (day < start) return 0;
+    if (day > end) return PROJECT_LENGTH;
+    return Math.round(((day - start) / (end - start)) * PROJECT_LENGTH);
+  };
+
+  const lines = [
+    { id: 'exc', start: schedule.excS, end: schedule.excE, color: '#2563eb', name: 'Excavation & Bedding' },
+    { id: 'pipe', start: schedule.pipeS, end: schedule.pipeE, color: '#16a34a', name: 'Pipe Laying & Alignment' },
+    { id: 'back', start: schedule.backS, end: schedule.backE, color: '#ea580c', name: 'Backfill & Compaction' },
+  ];
+
+  const conflicts = findConflicts(schedule, durations);
+
+  const handleMouseMove = (e) => {
+    if (!chartRef.current) return;
+    const rect = chartRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const day = xToDay(x);
+    if (day >= 0 && day <= MAX_DAY && x >= PADDING.left && x <= CHART_WIDTH - PADDING.right) {
+      setHover({ day, x: e.clientX - rect.left, y: e.clientY - rect.top });
+    } else {
+      setHover(null);
+    }
+  };
+
+  const xTicks = [];
+  for (let d = 0; d <= MAX_DAY; d += 20) xTicks.push(d);
+  const yTicks = [0, 4000, 8000, 12000, 16000];
+
+  return (
+    <div className="relative">
+      {/* Legend */}
+      <div className="flex flex-wrap gap-3 mb-1 text-xs justify-center">
+        {lines.map(l => (
+          <div key={l.id} className="flex items-center gap-1">
+            <div className="w-4 h-0.5 rounded" style={{ backgroundColor: l.color }}></div>
+            <span style={{ color: l.color }}>{l.name}</span>
+          </div>
+        ))}
+      </div>
+
+      <svg
+        ref={chartRef}
+        width="100%"
+        viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+        className="bg-white"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => setHover(null)}
+      >
+        {/* Grid */}
+        {xTicks.map(day => (
+          <line key={`gx-${day}`} x1={dayToX(day)} y1={PADDING.top} x2={dayToX(day)} y2={CHART_HEIGHT - PADDING.bottom} stroke="#f0f0f0" strokeWidth="1" />
+        ))}
+        {yTicks.map(dist => (
+          <line key={`gy-${dist}`} x1={PADDING.left} y1={distToY(dist)} x2={CHART_WIDTH - PADDING.right} y2={distToY(dist)} stroke="#f0f0f0" strokeWidth="1" />
+        ))}
+
+        {/* Axes */}
+        <line x1={PADDING.left} y1={CHART_HEIGHT - PADDING.bottom} x2={CHART_WIDTH - PADDING.right} y2={CHART_HEIGHT - PADDING.bottom} stroke="#374151" strokeWidth="1.5" />
+        <line x1={PADDING.left} y1={PADDING.top} x2={PADDING.left} y2={CHART_HEIGHT - PADDING.bottom} stroke="#374151" strokeWidth="1.5" />
+        {xTicks.map(day => (
+          <text key={`tx-${day}`} x={dayToX(day)} y={CHART_HEIGHT - PADDING.bottom + 16} textAnchor="middle" fontSize="10" fill="#6b7280">{day}</text>
+        ))}
+        <text x={CHART_WIDTH / 2} y={CHART_HEIGHT - 5} textAnchor="middle" fontSize="11" fill="#374151">Time (days)</text>
+        {yTicks.map(dist => (
+          <text key={`ty-${dist}`} x={PADDING.left - 8} y={distToY(dist) + 3} textAnchor="end" fontSize="10" fill="#6b7280">{(dist / 1000)}k</text>
+        ))}
+        <text x={12} y={CHART_HEIGHT / 2} textAnchor="middle" transform={`rotate(-90, 12, ${CHART_HEIGHT / 2})`} fontSize="11" fill="#374151">Distance (ft)</text>
+
+        {/* Lines */}
+        {lines.map(l => (
+          <polyline key={l.id} points={getLinePoints(l.start, l.end)} fill="none" stroke={l.color} strokeWidth="2.5" />
+        ))}
+
+        {/* Conflict markers */}
+        {conflicts.map((c, i) => {
+          const cx = dayToX(c.day);
+          const cy = distToY(c.dist);
+          return (
+            <g key={`conflict-${i}`}>
+              <circle cx={cx} cy={cy} r="10" fill="#ef4444" opacity="0.2" />
+              <circle cx={cx} cy={cy} r="6" fill="#ef4444" />
+              <text x={cx} y={cy + 3.5} textAnchor="middle" fontSize="8" fill="white" fontWeight="bold">✕</text>
+            </g>
+          );
+        })}
+
+        {/* Hover crosshair */}
+        {hover && (
+          <line x1={PADDING.left + (hover.day / MAX_DAY) * PLOT_WIDTH} y1={PADDING.top} x2={PADDING.left + (hover.day / MAX_DAY) * PLOT_WIDTH} y2={CHART_HEIGHT - PADDING.bottom} stroke="#9ca3af" strokeWidth="1" strokeDasharray="3,3" />
+        )}
+      </svg>
+
+      {/* Tooltip */}
+      {hover && (
+        <div
+          className="absolute bg-white border border-gray-300 rounded shadow-lg p-2 text-xs pointer-events-none z-10"
+          style={{ left: Math.min(hover.x + 10, CHART_WIDTH - 160), top: Math.max(hover.y - 80, 5) }}
+        >
+          <div className="font-bold mb-1">Day {hover.day}</div>
+          {lines.map(l => (
+            <div key={l.id} className="flex justify-between gap-3" style={{ color: l.color }}>
+              <span>{l.name.split(' ')[0]}:</span>
+              <span className="font-mono">{getDistAtDay(l.start, l.end, hover.day).toLocaleString()} ft</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Conflict message */}
+      <div className="mt-2 text-center">
+        {conflicts.length > 0 ? (
+          <div>
+            <span className="inline-block px-2 py-1 bg-red-100 text-red-700 text-xs rounded font-medium">
+              ❌ {conflicts.length} conflict{conflicts.length > 1 ? 's' : ''} detected!
+            </span>
+            <div className="mt-1 text-xs text-red-600">
+              {conflicts.map((c, i) => (
+                <div key={i}>Day {c.day}: {c.bName} passes {c.aName} at {c.dist.toLocaleString()} ft</div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <span className="inline-block px-2 py-1 bg-green-100 text-green-700 text-xs rounded font-medium">
+            ✅ No conflicts detected
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// SVG Draggable LOB Chart for R2 (with R1 dashed, R2 solid, buffer arrows, conflict markers, tooltip)
 function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
   const chartRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [dragOffset, setDragOffset] = useState(0);
+  const [hover, setHover] = useState(null);
 
-  const CHART_WIDTH = 600;
-  const CHART_HEIGHT = 300;
-  const PADDING = { top: 30, right: 30, bottom: 50, left: 70 };
+  const CHART_WIDTH = 700;
+  const CHART_HEIGHT = 360;
+  const PADDING = { top: 25, right: 30, bottom: 50, left: 70 };
   const PLOT_WIDTH = CHART_WIDTH - PADDING.left - PADDING.right;
   const PLOT_HEIGHT = CHART_HEIGHT - PADDING.top - PADDING.bottom;
-  const MAX_DAY = 140;
+  const MAX_DAY = 150;
 
   const dayToX = (day) => PADDING.left + (day / MAX_DAY) * PLOT_WIDTH;
   const xToDay = (x) => Math.round(((x - PADDING.left) / PLOT_WIDTH) * MAX_DAY);
   const distToY = (dist) => PADDING.top + PLOT_HEIGHT - (dist / PROJECT_LENGTH) * PLOT_HEIGHT;
 
-  // Generate line points for a schedule
   const getLinePoints = (start, end) => {
     if (!start || !end || start <= 0) return '';
-    const x1 = dayToX(start);
-    const y1 = distToY(0);
-    const x2 = dayToX(end);
-    const y2 = distToY(PROJECT_LENGTH);
-    return `${x1},${y1} ${x2},${y2}`;
+    return `${dayToX(start)},${distToY(0)} ${dayToX(end)},${distToY(PROJECT_LENGTH)}`;
+  };
+
+  const getDistAtDay = (start, end, day) => {
+    if (!start || !end || start <= 0) return 0;
+    if (day < start) return 0;
+    if (day > end) return PROJECT_LENGTH;
+    return Math.round(((day - start) / (end - start)) * PROJECT_LENGTH);
   };
 
   const handleMouseDown = (activity, e) => {
     e.preventDefault();
+    e.stopPropagation();
     const rect = chartRef.current.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const currentStart = r2Schedule[activity + 'S'];
@@ -626,11 +829,7 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
     const rect = chartRef.current.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const newStart = Math.max(MOB_DAYS + 1, Math.min(xToDay(mouseX - dragOffset), MAX_DAY - 20));
-    
-    onR2Change({
-      ...r2Schedule,
-      [dragging + 'S']: newStart
-    });
+    onR2Change({ ...r2Schedule, [dragging + 'S']: newStart });
   }, [dragging, dragOffset, r2Schedule, onR2Change]);
 
   const handleMouseUp = useCallback(() => setDragging(null), []);
@@ -639,19 +838,27 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
     if (!dragging) return;
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
+    return () => { window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); };
   }, [dragging, handleMouseMove, handleMouseUp]);
 
-  // Calculate end days
+  const handleChartHover = (e) => {
+    if (dragging || !chartRef.current) return;
+    const rect = chartRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const day = xToDay(x);
+    if (day >= 0 && day <= MAX_DAY && x >= PADDING.left && x <= CHART_WIDTH - PADDING.right) {
+      setHover({ day, x, y: e.clientY - rect.top });
+    } else {
+      setHover(null);
+    }
+  };
+
+  // R1 and R2 line data
   const r1Lines = {
     exc: { start: r1Schedule.excS, end: r1Schedule.excE },
     pipe: { start: r1Schedule.pipeS, end: r1Schedule.pipeE },
     back: { start: r1Schedule.backS, end: r1Schedule.backE },
   };
-
   const r2Lines = {
     exc: { start: r2Schedule.excS, end: r2Schedule.excS + durations.exc - 1 },
     pipe: { start: r2Schedule.pipeS, end: r2Schedule.pipeS + durations.pipe - 1 },
@@ -659,178 +866,204 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
   };
 
   const colors = {
-    exc: { stroke: '#2563eb', name: 'Excavation' },
-    pipe: { stroke: '#16a34a', name: 'Pipe Laying' },
-    back: { stroke: '#ea580c', name: 'Backfill' },
+    exc: { stroke: '#2563eb', name: 'Excavation & Bedding' },
+    pipe: { stroke: '#16a34a', name: 'Pipe Laying & Alignment' },
+    back: { stroke: '#ea580c', name: 'Backfill & Compaction' },
   };
 
-  // X-axis ticks
+  // Conflict detection on R2 lines
+  const r2Sched = {
+    excS: r2Lines.exc.start, excE: r2Lines.exc.end,
+    pipeS: r2Lines.pipe.start, pipeE: r2Lines.pipe.end,
+    backS: r2Lines.back.start, backE: r2Lines.back.end,
+  };
+  const r2Conflicts = findConflicts(r2Sched, durations);
+
+  // Buffer calculations
+  // Exc → Pipe: slower follows faster → buffer = pipeStart - excStart
+  const buffer1 = r2Schedule.pipeS - r2Schedule.excS;
+  const buffer1Ok = buffer1 === DEFAULT_BUFFER;
+  // Pipe → Back: faster follows slower → buffer at finish = backEnd - pipeEnd
+  const buffer2 = r2Lines.back.end - r2Lines.pipe.end;
+  const buffer2Ok = buffer2 === DEFAULT_BUFFER;
+
   const xTicks = [0, 20, 40, 60, 80, 100, 120, 140];
-  // Y-axis ticks
   const yTicks = [0, 4000, 8000, 12000, 16000];
 
+  // Buffer arrow helper: draws a double-headed arrow between two x positions at a given y
+  const BufferArrow = ({ x1, x2, y, label, isOk }) => {
+    const color = isOk ? '#16a34a' : '#ef4444';
+    const midX = (x1 + x2) / 2;
+    const arrowSize = 4;
+    return (
+      <g>
+        <line x1={x1} y1={y} x2={x2} y2={y} stroke={color} strokeWidth="2" />
+        {/* Left arrowhead */}
+        <polygon points={`${x1},${y} ${x1 + arrowSize},${y - arrowSize} ${x1 + arrowSize},${y + arrowSize}`} fill={color} />
+        {/* Right arrowhead */}
+        <polygon points={`${x2},${y} ${x2 - arrowSize},${y - arrowSize} ${x2 - arrowSize},${y + arrowSize}`} fill={color} />
+        {/* Label background */}
+        <rect x={midX - 22} y={y - 18} width="44" height="14" rx="3" fill={isOk ? '#dcfce7' : '#fee2e2'} stroke={color} strokeWidth="0.5" />
+        <text x={midX} y={y - 8} textAnchor="middle" fontSize="9" fill={color} fontWeight="bold">{label}</text>
+      </g>
+    );
+  };
+
   return (
-    <div className="flex flex-col items-center">
-      {/* Legend */}
-      <div className="flex gap-4 mb-2 text-sm">
-        <div className="flex items-center gap-1">
-          <div className="w-8 border-t-2 border-dashed border-gray-400"></div>
-          <span className="text-gray-600">R1 (original)</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-8 border-t-2 border-blue-500"></div>
-          <span className="text-gray-600">R2 (drag to adjust)</span>
+    <div>
+      {/* Fixed Legend */}
+      <div className="bg-gray-50 rounded-lg p-3 mb-3 text-xs">
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <div className="font-bold text-gray-500 mb-1">R1 (original):</div>
+            {['exc', 'pipe', 'back'].map(id => (
+              <div key={`r1-leg-${id}`} className="flex items-center gap-2 mb-0.5">
+                <svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke={colors[id].stroke} strokeWidth="2" strokeDasharray="4,3" opacity="0.5" /></svg>
+                <span style={{ color: colors[id].stroke }}>{colors[id].name}</span>
+              </div>
+            ))}
+          </div>
+          <div>
+            <div className="font-bold text-gray-500 mb-1">R2 (drag to revise):</div>
+            {['exc', 'pipe', 'back'].map(id => (
+              <div key={`r2-leg-${id}`} className="flex items-center gap-2 mb-0.5">
+                <svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke={colors[id].stroke} strokeWidth="3" /></svg>
+                <span style={{ color: colors[id].stroke }}>{colors[id].name}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      <svg
-        ref={chartRef}
-        width={CHART_WIDTH}
-        height={CHART_HEIGHT}
-        className="bg-white border rounded cursor-crosshair"
-      >
-        {/* Grid lines */}
-        {xTicks.map(day => (
-          <line
-            key={`grid-x-${day}`}
-            x1={dayToX(day)}
-            y1={PADDING.top}
-            x2={dayToX(day)}
-            y2={CHART_HEIGHT - PADDING.bottom}
-            stroke="#e5e7eb"
-            strokeWidth="1"
-          />
-        ))}
-        {yTicks.map(dist => (
-          <line
-            key={`grid-y-${dist}`}
-            x1={PADDING.left}
-            y1={distToY(dist)}
-            x2={CHART_WIDTH - PADDING.right}
-            y2={distToY(dist)}
-            stroke="#e5e7eb"
-            strokeWidth="1"
-          />
-        ))}
-
-        {/* X-axis */}
-        <line
-          x1={PADDING.left}
-          y1={CHART_HEIGHT - PADDING.bottom}
-          x2={CHART_WIDTH - PADDING.right}
-          y2={CHART_HEIGHT - PADDING.bottom}
-          stroke="#374151"
-          strokeWidth="2"
-        />
-        {xTicks.map(day => (
-          <text
-            key={`tick-x-${day}`}
-            x={dayToX(day)}
-            y={CHART_HEIGHT - PADDING.bottom + 20}
-            textAnchor="middle"
-            className="text-xs fill-gray-500"
-          >
-            {day}
-          </text>
-        ))}
-        <text
-          x={CHART_WIDTH / 2}
-          y={CHART_HEIGHT - 10}
-          textAnchor="middle"
-          className="text-sm fill-gray-600"
+      {/* SVG Chart */}
+      <div className="relative">
+        <svg
+          ref={chartRef}
+          width={CHART_WIDTH}
+          height={CHART_HEIGHT}
+          className="bg-white border rounded"
+          style={{ maxWidth: '100%' }}
+          onMouseMove={handleChartHover}
+          onMouseLeave={() => !dragging && setHover(null)}
         >
-          Time (days)
-        </text>
+          {/* Grid */}
+          {xTicks.map(day => (
+            <line key={`gx-${day}`} x1={dayToX(day)} y1={PADDING.top} x2={dayToX(day)} y2={CHART_HEIGHT - PADDING.bottom} stroke="#f3f4f6" strokeWidth="1" />
+          ))}
+          {yTicks.map(dist => (
+            <line key={`gy-${dist}`} x1={PADDING.left} y1={distToY(dist)} x2={CHART_WIDTH - PADDING.right} y2={distToY(dist)} stroke="#f3f4f6" strokeWidth="1" />
+          ))}
 
-        {/* Y-axis */}
-        <line
-          x1={PADDING.left}
-          y1={PADDING.top}
-          x2={PADDING.left}
-          y2={CHART_HEIGHT - PADDING.bottom}
-          stroke="#374151"
-          strokeWidth="2"
-        />
-        {yTicks.map(dist => (
-          <text
-            key={`tick-y-${dist}`}
-            x={PADDING.left - 10}
-            y={distToY(dist) + 4}
-            textAnchor="end"
-            className="text-xs fill-gray-500"
-          >
-            {(dist/1000)}k
-          </text>
-        ))}
-        <text
-          x={15}
-          y={CHART_HEIGHT / 2}
-          textAnchor="middle"
-          transform={`rotate(-90, 15, ${CHART_HEIGHT / 2})`}
-          className="text-sm fill-gray-600"
-        >
-          Distance (ft)
-        </text>
+          {/* Axes */}
+          <line x1={PADDING.left} y1={CHART_HEIGHT - PADDING.bottom} x2={CHART_WIDTH - PADDING.right} y2={CHART_HEIGHT - PADDING.bottom} stroke="#374151" strokeWidth="2" />
+          <line x1={PADDING.left} y1={PADDING.top} x2={PADDING.left} y2={CHART_HEIGHT - PADDING.bottom} stroke="#374151" strokeWidth="2" />
+          {xTicks.map(day => (
+            <text key={`tx-${day}`} x={dayToX(day)} y={CHART_HEIGHT - PADDING.bottom + 18} textAnchor="middle" fontSize="11" fill="#6b7280">{day}</text>
+          ))}
+          <text x={CHART_WIDTH / 2} y={CHART_HEIGHT - 8} textAnchor="middle" fontSize="12" fill="#374151">Time (days)</text>
+          {yTicks.map(dist => (
+            <text key={`ty-${dist}`} x={PADDING.left - 10} y={distToY(dist) + 4} textAnchor="end" fontSize="11" fill="#6b7280">{(dist / 1000)}k</text>
+          ))}
+          <text x={15} y={CHART_HEIGHT / 2} textAnchor="middle" transform={`rotate(-90, 15, ${CHART_HEIGHT / 2})`} fontSize="12" fill="#374151">Distance (ft)</text>
 
-        {/* R1 Lines (dashed) */}
-        {['exc', 'pipe', 'back'].map(activity => (
-          <polyline
-            key={`r1-${activity}`}
-            points={getLinePoints(r1Lines[activity].start, r1Lines[activity].end)}
-            fill="none"
-            stroke={colors[activity].stroke}
-            strokeWidth="2"
-            strokeDasharray="6,4"
-            opacity="0.5"
-          />
-        ))}
+          {/* R1 Lines (dashed) */}
+          {['exc', 'pipe', 'back'].map(id => (
+            <polyline key={`r1-${id}`} points={getLinePoints(r1Lines[id].start, r1Lines[id].end)} fill="none" stroke={colors[id].stroke} strokeWidth="2" strokeDasharray="6,4" opacity="0.4" />
+          ))}
 
-        {/* R2 Lines (solid, draggable) */}
-        {['exc', 'pipe', 'back'].map(activity => (
-          <g key={`r2-${activity}`}>
-            <polyline
-              points={getLinePoints(r2Lines[activity].start, r2Lines[activity].end)}
-              fill="none"
-              stroke={colors[activity].stroke}
-              strokeWidth="3"
-              className={`cursor-grab ${dragging === activity ? 'opacity-70' : ''}`}
-              onMouseDown={(e) => handleMouseDown(activity, e)}
+          {/* R2 Lines (solid, draggable) */}
+          {['exc', 'pipe', 'back'].map(id => (
+            <g key={`r2-${id}`}>
+              {/* Wider invisible hit area for easier dragging */}
+              <polyline
+                points={getLinePoints(r2Lines[id].start, r2Lines[id].end)}
+                fill="none" stroke="transparent" strokeWidth="16"
+                className="cursor-grab"
+                onMouseDown={(e) => handleMouseDown(id, e)}
+              />
+              <polyline
+                points={getLinePoints(r2Lines[id].start, r2Lines[id].end)}
+                fill="none" stroke={colors[id].stroke} strokeWidth="3"
+                className={`cursor-grab ${dragging === id ? 'opacity-60' : ''}`}
+                onMouseDown={(e) => handleMouseDown(id, e)}
+              />
+              {/* Drag handle */}
+              <circle
+                cx={dayToX(r2Lines[id].start)} cy={distToY(0)} r="7"
+                fill={colors[id].stroke} stroke="white" strokeWidth="2"
+                className={`cursor-grab ${dragging === id ? 'opacity-60' : ''}`}
+                onMouseDown={(e) => handleMouseDown(id, e)}
+              />
+            </g>
+          ))}
+
+          {/* Buffer arrows - Exc→Pipe at bottom (y=0) */}
+          {r2Lines.exc.start > 0 && r2Lines.pipe.start > 0 && (
+            <BufferArrow
+              x1={dayToX(r2Lines.exc.start)}
+              x2={dayToX(r2Lines.pipe.start)}
+              y={distToY(0) + 15}
+              label={`${buffer1}d`}
+              isOk={buffer1Ok}
             />
-            {/* Drag handle at start point */}
-            <circle
-              cx={dayToX(r2Lines[activity].start)}
-              cy={distToY(0)}
-              r="8"
-              fill={colors[activity].stroke}
-              className={`cursor-grab ${dragging === activity ? 'opacity-70' : ''}`}
-              onMouseDown={(e) => handleMouseDown(activity, e)}
+          )}
+
+          {/* Buffer arrows - Pipe→Back at top (y=PROJECT_LENGTH) */}
+          {r2Lines.pipe.end > 0 && r2Lines.back.end > 0 && (
+            <BufferArrow
+              x1={dayToX(r2Lines.pipe.end)}
+              x2={dayToX(r2Lines.back.end)}
+              y={distToY(PROJECT_LENGTH) - 15}
+              label={`${buffer2}d`}
+              isOk={buffer2Ok}
             />
-            {/* Label */}
-            <text
-              x={dayToX(r2Lines[activity].end) + 5}
-              y={distToY(PROJECT_LENGTH) - 5}
-              className="text-xs fill-gray-600"
-            >
-              {colors[activity].name}
+          )}
+
+          {/* Conflict markers on R2 */}
+          {r2Conflicts.map((c, i) => {
+            const cx = dayToX(c.day);
+            const cy = distToY(c.dist);
+            return (
+              <g key={`r2c-${i}`}>
+                <circle cx={cx} cy={cy} r="12" fill="#ef4444" opacity="0.15" />
+                <circle cx={cx} cy={cy} r="7" fill="#ef4444" />
+                <text x={cx} y={cy + 3.5} textAnchor="middle" fontSize="9" fill="white" fontWeight="bold">✕</text>
+              </g>
+            );
+          })}
+
+          {/* Hover crosshair */}
+          {hover && !dragging && (
+            <line x1={dayToX(hover.day)} y1={PADDING.top} x2={dayToX(hover.day)} y2={CHART_HEIGHT - PADDING.bottom} stroke="#9ca3af" strokeWidth="1" strokeDasharray="3,3" />
+          )}
+
+          {/* Dragging indicator */}
+          {dragging && (
+            <text x={CHART_WIDTH / 2} y={PADDING.top - 8} textAnchor="middle" fontSize="12" fill="#d97706" fontWeight="bold">
+              Dragging {colors[dragging].name}...
             </text>
-          </g>
-        ))}
+          )}
+        </svg>
 
-        {/* Dragging indicator */}
-        {dragging && (
-          <text
-            x={CHART_WIDTH / 2}
-            y={PADDING.top - 10}
-            textAnchor="middle"
-            className="text-sm fill-yellow-600 font-bold"
+        {/* Tooltip */}
+        {hover && !dragging && (
+          <div
+            className="absolute bg-white border border-gray-300 rounded shadow-lg p-2 text-xs pointer-events-none z-10"
+            style={{ left: Math.min(hover.x + 12, CHART_WIDTH - 180), top: Math.max(hover.y - 90, 5) }}
           >
-            Dragging {colors[dragging].name}...
-          </text>
+            <div className="font-bold mb-1 border-b pb-1">Day {hover.day}</div>
+            {['exc', 'pipe', 'back'].map(id => (
+              <div key={id} className="flex justify-between gap-4" style={{ color: colors[id].stroke }}>
+                <span>{colors[id].name.split(' & ')[0]}:</span>
+                <span className="font-mono">{getDistAtDay(r2Lines[id].start, r2Lines[id].end, hover.day).toLocaleString()} ft</span>
+              </div>
+            ))}
+          </div>
         )}
-      </svg>
+      </div>
 
-      <p className="text-sm text-gray-500 mt-2">
-        🖱️ Drag the circles at the bottom of each solid line to adjust start days
+      <p className="text-sm text-gray-500 mt-2 text-center">
+        🖱️ Drag the solid lines or circles to adjust start days
       </p>
     </div>
   );
@@ -1319,7 +1552,10 @@ export default function LOBGame() {
 
           {/* Section 1: Your R1 Schedule - Bar Chart vs LOB */}
           <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="font-bold mb-3">📊 Your R1 Schedule</h3>
+            <h3 className="font-bold mb-2">📊 Your R1 Schedule</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              Here is your schedule from Round 1. Compare the Bar Chart and LOB to see how the same schedule looks in each format.
+            </p>
 
             {/* R1 Schedule Table */}
             <table className="w-full text-sm border mb-4">
@@ -1375,19 +1611,7 @@ export default function LOBGame() {
               </div>
               <div className="border rounded-lg p-3">
                 <h4 className="font-bold text-sm mb-2 text-center">📈 Line of Balance (LOB)</h4>
-                <ResponsiveContainer width="100%" height={180}>
-                  <LineChart data={genLOB([r1Student])} margin={{ top: 5, right: 20, bottom: 25, left: 40 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" tick={{ fontSize: 10 }} label={{ value: 'Days', position: 'insideBottom', offset: -5, fontSize: 10 }} />
-                    <YAxis domain={[0, PROJECT_LENGTH]} tickFormatter={v => (v / 1000).toFixed(0) + 'k'} tick={{ fontSize: 10 }} label={{ value: 'ft', angle: -90, position: 'insideLeft', offset: 10, fontSize: 10 }} />
-                    <Line type="linear" dataKey="exc0" stroke="#2563eb" strokeWidth={2} dot={false} />
-                    <Line type="linear" dataKey="pipe0" stroke="#16a34a" strokeWidth={2} dot={false} />
-                    <Line type="linear" dataKey="back0" stroke="#ea580c" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-                <div className="mt-2 text-center">
-                  <span className="inline-block px-2 py-1 bg-red-100 text-red-700 text-xs rounded font-medium">❌ Lines cross = CONFLICT!</span>
-                </div>
+                <LOBChartR1 schedule={r1Student} durations={dur} />
               </div>
             </div>
 
@@ -1397,8 +1621,6 @@ export default function LOBGame() {
                 <ul className="space-y-1">
                   <li>• <strong>Bar Chart:</strong> Shows only TIME (when activities happen)</li>
                   <li>• <strong>LOB:</strong> Shows TIME + LOCATION (where crews are along the pipeline)</li>
-                  <li>• Crossing lines mean crews are at the same location at the same time</li>
-                  <li>• Example: Backfill catches up to Pipe Laying — you can't backfill pipe that isn't laid!</li>
                 </ul>
               </FlashCard>
             </div>
@@ -1406,7 +1628,18 @@ export default function LOBGame() {
 
           {/* Section 2: Revise with LOB */}
           <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="font-bold mb-3">📈 Revise with Line of Balance (LOB)</h3>
+            <h3 className="font-bold mb-2">📈 Revise with Line of Balance (LOB)</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              Now revise your schedule to eliminate conflicts. Use the rules below:
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm">
+              <div className="font-bold text-blue-800 mb-1">Assumptions:</div>
+              <ul className="text-blue-700 space-y-0.5">
+                <li>• Excavation & Bedding must start on <strong>Day {MOB_DAYS + 1}</strong> (right after mobilization)</li>
+                <li>• Maintain a <strong>{DEFAULT_BUFFER}-day buffer</strong> between all activities</li>
+              </ul>
+              <div className="mt-2 text-blue-600">Drag the solid lines on the chart until all buffers turn <span className="text-green-600 font-bold">green</span>.</div>
+            </div>
 
             {/* Flash Cards */}
             <div className="space-y-2 mb-4">
@@ -1420,7 +1653,7 @@ export default function LOBGame() {
               </FlashCard>
               <FlashCard title="How to fix conflicts?" icon="🔧" isOpen={r2FlashCards.howToFix} onToggle={() => setR2FlashCards(p => ({ ...p, howToFix: !p.howToFix }))}>
                 <div className="space-y-2">
-                  <p>Add <strong>BUFFERS</strong> (spacing in days) between activities:</p>
+                  <p>Add <strong>BUFFERS</strong> between activities. A buffer is extra time spacing to ensure crews never work at the same location simultaneously.</p>
                   <div className="bg-blue-50 p-2 rounded text-sm">
                     <strong>Slower follows faster:</strong> Start = Prev Start + Buffer
                   </div>
@@ -1436,9 +1669,51 @@ export default function LOBGame() {
               <DraggableLOBChart
                 r1Schedule={r1Student}
                 r2Schedule={r2Schedule}
-                onR2Change={setR2Schedule}
+                onR2Change={(newSched) => { setR2Schedule(newSched); setR2Validated(false); }}
                 durations={dur}
               />
+            )}
+
+            {/* Buffer Status Cards */}
+            {r2Schedule && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                {(() => {
+                  const excS = r2Schedule.excS;
+                  const pipeS = r2Schedule.pipeS;
+                  const pipeE = pipeS + dur.pipe - 1;
+                  const backS = r2Schedule.backS;
+                  const backE = backS + dur.back - 1;
+                  const buf1 = pipeS - excS;
+                  const buf1Ok = buf1 === DEFAULT_BUFFER;
+                  const buf2 = backE - pipeE;
+                  const buf2Ok = buf2 === DEFAULT_BUFFER;
+                  const excOk = excS === MOB_DAYS + 1;
+                  return (<>
+                    <div className={`p-3 rounded-lg border-2 ${excOk ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'}`}>
+                      <div className="font-bold text-sm mb-1">{excOk ? '✅' : '❌'} Excavation Start</div>
+                      <div className="text-xs">
+                        Excavation starts Day <strong>{excS}</strong>
+                        {excOk ? ' ✓' : ` (should be ${MOB_DAYS + 1})`}
+                      </div>
+                    </div>
+                    <div className="col-span-1"></div>
+                    <div className={`p-3 rounded-lg border-2 ${buf1Ok ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'}`}>
+                      <div className="font-bold text-sm mb-1">{buf1Ok ? '✅' : '❌'} Excavation → Pipe Laying</div>
+                      <div className="text-xs">
+                        Buffer: Pipe Start ({pipeS}) − Exc Start ({excS}) = <strong>{buf1} days</strong>
+                        {buf1Ok ? ' ✓' : ` (need ${DEFAULT_BUFFER})`}
+                      </div>
+                    </div>
+                    <div className={`p-3 rounded-lg border-2 ${buf2Ok ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'}`}>
+                      <div className="font-bold text-sm mb-1">{buf2Ok ? '✅' : '❌'} Pipe Laying → Backfill</div>
+                      <div className="text-xs">
+                        Buffer: Back End ({backE}) − Pipe End ({pipeE}) = <strong>{buf2} days</strong>
+                        {buf2Ok ? ' ✓' : ` (need ${DEFAULT_BUFFER})`}
+                      </div>
+                    </div>
+                  </>);
+                })()}
+              </div>
             )}
 
             {/* R2 Schedule Table (auto-updated) */}
