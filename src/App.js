@@ -1080,7 +1080,7 @@ export default function LOBGame() {
   // R2 state - draggable LOB design
   const [r2Schedule, setR2Schedule] = useState(null);
   const [r2Validated, setR2Validated] = useState(false);
-  const [r2FlashCards, setR2FlashCards] = useState({ whyProblem: false, whatIsLOB: false, howToFix: false });
+  const [r2FlashCards, setR2FlashCards] = useState({ whyProblem: false, whyMatter: false, whatIsLOB: false, howToFix: false, assumptions: false, howToRevise: false });
 
   // Initialize R2 schedule from R1 when entering round 2
   useEffect(() => {
@@ -1550,7 +1550,7 @@ export default function LOBGame() {
             </p>
           </div>
 
-          {/* Section 1: Your R1 Schedule - Bar Chart vs LOB */}
+          {/* Section 1: Your R1 Schedule */}
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-2">📊 Your R1 Schedule</h3>
             <p className="text-sm text-gray-600 mb-3">
@@ -1615,13 +1615,24 @@ export default function LOBGame() {
               </div>
             </div>
 
-            {/* Flash Card: Why the difference? */}
-            <div className="mt-4">
+            {/* Flash Cards for R1 section */}
+            <div className="mt-4 space-y-2">
               <FlashCard title="Why the difference?" icon="💡" isOpen={r2FlashCards.whyProblem} onToggle={() => setR2FlashCards(p => ({ ...p, whyProblem: !p.whyProblem }))}>
                 <ul className="space-y-1">
                   <li>• <strong>Bar Chart:</strong> Shows only TIME (when activities happen)</li>
                   <li>• <strong>LOB:</strong> Shows TIME + LOCATION (where crews are along the pipeline)</li>
                 </ul>
+              </FlashCard>
+              <FlashCard title="Why does this matter?" icon="⚠️" isOpen={r2FlashCards.whyMatter} onToggle={() => setR2FlashCards(p => ({ ...p, whyMatter: !p.whyMatter }))}>
+                <div className="space-y-2">
+                  <p>In real construction, a following crew <strong>CANNOT</strong> work at a location before the preceding crew has finished there:</p>
+                  <ul className="space-y-1 ml-2">
+                    <li>• You cannot lay pipe in a trench that hasn't been dug yet</li>
+                    <li>• You cannot backfill over pipe that hasn't been placed</li>
+                  </ul>
+                  <p>When LOB lines cross, it means a crew has caught up to or passed the crew ahead of it — this is a <strong>real conflict on the job site</strong>.</p>
+                  <p>To prevent this, we apply <strong>BUFFERS</strong> — a minimum time gap between crews — so that each crew always stays safely ahead of the next one.</p>
+                </div>
               </FlashCard>
             </div>
           </div>
@@ -1630,16 +1641,8 @@ export default function LOBGame() {
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-2">📈 Revise with Line of Balance (LOB)</h3>
             <p className="text-sm text-gray-600 mb-3">
-              Now revise your schedule to eliminate conflicts. Use the rules below:
+              Now apply buffers to create a conflict-free schedule.
             </p>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm">
-              <div className="font-bold text-blue-800 mb-1">Assumptions:</div>
-              <ul className="text-blue-700 space-y-0.5">
-                <li>• Excavation & Bedding must start on <strong>Day {MOB_DAYS + 1}</strong> (right after mobilization)</li>
-                <li>• Maintain a <strong>{DEFAULT_BUFFER}-day buffer</strong> between all activities</li>
-              </ul>
-              <div className="mt-2 text-blue-600">Drag the solid lines on the chart until all buffers turn <span className="text-green-600 font-bold">green</span>.</div>
-            </div>
 
             {/* Flash Cards */}
             <div className="space-y-2 mb-4">
@@ -1653,7 +1656,9 @@ export default function LOBGame() {
               </FlashCard>
               <FlashCard title="How to fix conflicts?" icon="🔧" isOpen={r2FlashCards.howToFix} onToggle={() => setR2FlashCards(p => ({ ...p, howToFix: !p.howToFix }))}>
                 <div className="space-y-2">
-                  <p>Add <strong>BUFFERS</strong> between activities. A buffer is extra time spacing to ensure crews never work at the same location simultaneously.</p>
+                  <p>A buffer is a minimum time gap (in days) between two activities. It ensures the preceding crew is always ahead of the following crew at every point along the pipeline.</p>
+                  <p>Without a buffer, a faster crew (like Backfill at {CREWS.back.rate} ft/day) can catch up to a slower crew (like Pipe Laying at {CREWS.pipe.rate} ft/day), causing a conflict on site.</p>
+                  <div className="mt-2 font-bold text-gray-700">Buffer formulas:</div>
                   <div className="bg-blue-50 p-2 rounded text-sm">
                     <strong>Slower follows faster:</strong> Start = Prev Start + Buffer
                   </div>
@@ -1662,140 +1667,216 @@ export default function LOBGame() {
                   </div>
                 </div>
               </FlashCard>
-            </div>
-
-            {/* Draggable LOB Chart */}
-            {r2Schedule && (
-              <DraggableLOBChart
-                r1Schedule={r1Student}
-                r2Schedule={r2Schedule}
-                onR2Change={(newSched) => { setR2Schedule(newSched); setR2Validated(false); }}
-                durations={dur}
-              />
-            )}
-
-            {/* Buffer Status Cards */}
-            {r2Schedule && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-                {(() => {
-                  const excS = r2Schedule.excS;
-                  const pipeS = r2Schedule.pipeS;
-                  const pipeE = pipeS + dur.pipe - 1;
-                  const backS = r2Schedule.backS;
-                  const backE = backS + dur.back - 1;
-                  const buf1 = pipeS - excS;
-                  const buf1Ok = buf1 === DEFAULT_BUFFER;
-                  const buf2 = backE - pipeE;
-                  const buf2Ok = buf2 === DEFAULT_BUFFER;
-                  const excOk = excS === MOB_DAYS + 1;
-                  return (<>
-                    <div className={`p-3 rounded-lg border-2 ${excOk ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'}`}>
-                      <div className="font-bold text-sm mb-1">{excOk ? '✅' : '❌'} Excavation Start</div>
-                      <div className="text-xs">
-                        Excavation starts Day <strong>{excS}</strong>
-                        {excOk ? ' ✓' : ` (should be ${MOB_DAYS + 1})`}
-                      </div>
-                    </div>
-                    <div className="col-span-1"></div>
-                    <div className={`p-3 rounded-lg border-2 ${buf1Ok ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'}`}>
-                      <div className="font-bold text-sm mb-1">{buf1Ok ? '✅' : '❌'} Excavation → Pipe Laying</div>
-                      <div className="text-xs">
-                        Buffer: Pipe Start ({pipeS}) − Exc Start ({excS}) = <strong>{buf1} days</strong>
-                        {buf1Ok ? ' ✓' : ` (need ${DEFAULT_BUFFER})`}
-                      </div>
-                    </div>
-                    <div className={`p-3 rounded-lg border-2 ${buf2Ok ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'}`}>
-                      <div className="font-bold text-sm mb-1">{buf2Ok ? '✅' : '❌'} Pipe Laying → Backfill</div>
-                      <div className="text-xs">
-                        Buffer: Back End ({backE}) − Pipe End ({pipeE}) = <strong>{buf2} days</strong>
-                        {buf2Ok ? ' ✓' : ` (need ${DEFAULT_BUFFER})`}
-                      </div>
-                    </div>
-                  </>);
-                })()}
-              </div>
-            )}
-
-            {/* R2 Schedule Table (auto-updated) */}
-            <div className="mt-4">
-              <h4 className="font-bold text-sm mb-2">R2 Schedule (auto-updated from chart):</h4>
-              <table className="w-full text-sm border">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="px-2 py-2 border text-left">Activity</th>
-                    <th className="px-2 py-2 border text-center">Rate (ft/day)</th>
-                    <th className="px-2 py-2 border text-center">Duration</th>
-                    <th className="px-2 py-2 border text-center">Start</th>
-                    <th className="px-2 py-2 border text-center">End</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="bg-gray-50">
-                    <td className="px-2 py-2 border">Mobilization</td>
-                    <td className="px-2 py-2 border text-center">-</td>
-                    <td className="px-2 py-2 border text-center">{MOB_DAYS}</td>
-                    <td className="px-2 py-2 border text-center">1</td>
-                    <td className="px-2 py-2 border text-center">{MOB_DAYS}</td>
-                  </tr>
-                  <tr className="text-blue-700">
-                    <td className="px-2 py-2 border">Excavation & Bedding</td>
-                    <td className="px-2 py-2 border text-center">{CREWS.exc.rate}</td>
-                    <td className="px-2 py-2 border text-center">{dur.exc}</td>
-                    <td className="px-2 py-2 border text-center font-bold">{r2Student.excS}</td>
-                    <td className="px-2 py-2 border text-center font-bold">{r2Student.excE}</td>
-                  </tr>
-                  <tr className="text-green-700">
-                    <td className="px-2 py-2 border">Pipe Laying & Alignment</td>
-                    <td className="px-2 py-2 border text-center">{CREWS.pipe.rate}</td>
-                    <td className="px-2 py-2 border text-center">{dur.pipe}</td>
-                    <td className="px-2 py-2 border text-center font-bold">{r2Student.pipeS}</td>
-                    <td className="px-2 py-2 border text-center font-bold">{r2Student.pipeE}</td>
-                  </tr>
-                  <tr className="text-orange-700">
-                    <td className="px-2 py-2 border">Backfill & Compaction</td>
-                    <td className="px-2 py-2 border text-center">{CREWS.back.rate}</td>
-                    <td className="px-2 py-2 border text-center">{dur.back}</td>
-                    <td className="px-2 py-2 border text-center font-bold">{r2Student.backS}</td>
-                    <td className="px-2 py-2 border text-center font-bold">{r2Student.backE}</td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <div className="mt-3 p-3 bg-blue-50 rounded text-center">
-                <span className="text-gray-600">Project Duration:</span>
-                <span className="ml-2 text-xl font-bold text-blue-600">{r2Student.end} days</span>
-              </div>
-            </div>
-
-            {/* Check Answer */}
-            <div className="mt-4">
-              <button onClick={() => setR2Validated(true)} className="px-4 py-2 bg-blue-500 text-white rounded font-bold hover:bg-blue-600">
-                Check Answer
-              </button>
-
-              {r2Validated && !r2IsCorrect && (
-                <div className="mt-2 p-3 bg-red-100 text-red-700 rounded">
-                  ❌ Not correct. Ensure:
-                  <ul className="ml-4 mt-1 text-sm">
-                    <li>• Excavation starts on Day {r2Correct.excS} {r2Student.excS === r2Correct.excS ? '✅' : '❌'}</li>
-                    <li>• Pipe Laying starts on Day {r2Correct.pipeS} ({DEFAULT_BUFFER}-day buffer) {r2Student.pipeS === r2Correct.pipeS ? '✅' : '❌'}</li>
-                    <li>• Backfill starts on Day {r2Correct.backS} ({DEFAULT_BUFFER}-day buffer) {r2Student.backS === r2Correct.backS ? '✅' : '❌'}</li>
-                  </ul>
+              <FlashCard title="Assumptions" icon="📐" isOpen={r2FlashCards.assumptions} onToggle={() => setR2FlashCards(p => ({ ...p, assumptions: !p.assumptions }))}>
+                <ul className="space-y-1">
+                  <li>• Excavation & Bedding starts on <strong>Day {MOB_DAYS + 1}</strong> (immediately after mobilization ends on Day {MOB_DAYS})</li>
+                  <li>• All activities must have a <strong>{DEFAULT_BUFFER}-day buffer</strong> between them</li>
+                </ul>
+              </FlashCard>
+              <FlashCard title="How to revise" icon="🎯" isOpen={r2FlashCards.howToRevise} onToggle={() => setR2FlashCards(p => ({ ...p, howToRevise: !p.howToRevise }))}>
+                <div className="space-y-2">
+                  <p>Each activity line has a <strong>● handle</strong> at the bottom. Drag it left/right to change that activity's start day.</p>
+                  <div className="bg-gray-50 rounded p-2 space-y-1">
+                    <div className="flex items-center gap-2"><span className="inline-block w-3 h-3 rounded-full bg-blue-500"></span> <strong>Step 1:</strong> Drag Excavation so it starts on Day {MOB_DAYS + 1}</div>
+                    <div className="flex items-center gap-2"><span className="inline-block w-3 h-3 rounded-full bg-green-500"></span> <strong>Step 2:</strong> Drag Pipe Laying until the buffer arrow shows "{DEFAULT_BUFFER}d" and turns green</div>
+                    <div className="flex items-center gap-2"><span className="inline-block w-3 h-3 rounded-full bg-orange-500"></span> <strong>Step 3:</strong> Drag Backfill until the buffer arrow shows "{DEFAULT_BUFFER}d" and turns green</div>
+                  </div>
+                  <p className="text-sm text-gray-600">All three status cards below must turn ✅ green.</p>
                 </div>
-              )}
-
-              {r2Validated && r2IsCorrect && (
-                <div className="mt-2 p-3 bg-green-100 text-green-700 rounded">
-                  ✅ Correct! All criteria met.
-                  <ul className="ml-4 mt-1 text-sm">
-                    <li>• Excavation starts Day {r2Correct.excS} ✓</li>
-                    <li>• {DEFAULT_BUFFER}-day buffer between Excavation and Pipe Laying ✓</li>
-                    <li>• {DEFAULT_BUFFER}-day buffer between Pipe Laying and Backfill ✓</li>
-                    <li>• No conflicts (lines don't cross) ✓</li>
-                  </ul>
-                </div>
-              )}
+              </FlashCard>
             </div>
+
+            {/* Chart + Conflict Panel side-by-side */}
+            {r2Schedule && (() => {
+              const r2Sched = {
+                excS: r2Schedule.excS, excE: r2Schedule.excS + dur.exc - 1,
+                pipeS: r2Schedule.pipeS, pipeE: r2Schedule.pipeS + dur.pipe - 1,
+                backS: r2Schedule.backS, backE: r2Schedule.backS + dur.back - 1,
+              };
+              const r2ConflictList = findConflicts(r2Sched, dur);
+              const excOk = r2Schedule.excS === MOB_DAYS + 1;
+              const buf1 = r2Schedule.pipeS - r2Schedule.excS;
+              const buf1Ok = buf1 === DEFAULT_BUFFER;
+              const buf2 = r2Sched.backE - r2Sched.pipeE;
+              const buf2Ok = buf2 === DEFAULT_BUFFER;
+              const allBuffersOk = excOk && buf1Ok && buf2Ok;
+
+              return (<>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  {/* Chart - takes 2/3 width */}
+                  <div className="lg:col-span-2">
+                    <DraggableLOBChart
+                      r1Schedule={r1Student}
+                      r2Schedule={r2Schedule}
+                      onR2Change={(newSched) => { setR2Schedule(newSched); setR2Validated(false); }}
+                      durations={dur}
+                    />
+                  </div>
+
+                  {/* Conflict Panel - takes 1/3 width */}
+                  <div className="border rounded-lg p-3 bg-gray-50">
+                    <h4 className="font-bold text-sm mb-3">
+                      {r2ConflictList.length > 0 ? '⊗ Conflicts:' : '✅ Conflict Status'}
+                    </h4>
+
+                    {r2ConflictList.length > 0 ? (
+                      <div className="space-y-3">
+                        {r2ConflictList.map((c, i) => (
+                          <div key={i} className="bg-red-50 border border-red-200 rounded p-2">
+                            <div className="font-bold text-red-700 text-sm">❌ Day {c.day}</div>
+                            <div className="text-xs text-red-600 mt-1">
+                              {c.bName} passes {c.aName}
+                            </div>
+                            <div className="text-xs text-red-500">
+                              at {c.dist.toLocaleString()} ft
+                            </div>
+                          </div>
+                        ))}
+                        <p className="text-xs text-gray-500 mt-2">
+                          Drag the lines to add spacing between crews and resolve conflicts.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="bg-green-50 border border-green-200 rounded p-3 text-center">
+                        <div className="text-2xl mb-1">✅</div>
+                        <div className="font-bold text-green-700 text-sm">No conflicts!</div>
+                        <div className="text-xs text-green-600 mt-1">
+                          All crews maintain safe spacing along the pipeline.
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Buffer Status Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+                  <div className={`p-3 rounded-lg border-2 ${excOk ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'}`}>
+                    <div className="font-bold text-sm mb-1">{excOk ? '✅' : '❌'} Excavation Start</div>
+                    <div className="text-xs">
+                      Excavation starts Day <strong>{r2Schedule.excS}</strong>
+                      {excOk ? ' ✓' : ` (should be ${MOB_DAYS + 1})`}
+                    </div>
+                  </div>
+                  <div className={`p-3 rounded-lg border-2 ${buf1Ok ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'}`}>
+                    <div className="font-bold text-sm mb-1">{buf1Ok ? '✅' : '❌'} Exc → Pipe Laying</div>
+                    <div className="text-xs">
+                      Buffer: {r2Schedule.pipeS} − {r2Schedule.excS} = <strong>{buf1} days</strong>
+                      {buf1Ok ? ' ✓' : ` (need ${DEFAULT_BUFFER})`}
+                    </div>
+                  </div>
+                  <div className={`p-3 rounded-lg border-2 ${buf2Ok ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'}`}>
+                    <div className="font-bold text-sm mb-1">{buf2Ok ? '✅' : '❌'} Pipe Laying → Backfill</div>
+                    <div className="text-xs">
+                      Buffer: {r2Sched.backE} − {r2Sched.pipeE} = <strong>{buf2} days</strong>
+                      {buf2Ok ? ' ✓' : ` (need ${DEFAULT_BUFFER})`}
+                    </div>
+                  </div>
+                </div>
+
+                {/* R2 Schedule Table */}
+                <div className="mt-4">
+                  <h4 className="font-bold text-sm mb-2">R2 Schedule (auto-updated from chart):</h4>
+                  <table className="w-full text-sm border">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="px-2 py-2 border text-left">Activity</th>
+                        <th className="px-2 py-2 border text-center">Rate (ft/day)</th>
+                        <th className="px-2 py-2 border text-center">Duration</th>
+                        <th className="px-2 py-2 border text-center">Start</th>
+                        <th className="px-2 py-2 border text-center">End</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="bg-gray-50">
+                        <td className="px-2 py-2 border">Mobilization</td>
+                        <td className="px-2 py-2 border text-center">-</td>
+                        <td className="px-2 py-2 border text-center">{MOB_DAYS}</td>
+                        <td className="px-2 py-2 border text-center">1</td>
+                        <td className="px-2 py-2 border text-center">{MOB_DAYS}</td>
+                      </tr>
+                      <tr className="text-blue-700">
+                        <td className="px-2 py-2 border">Excavation & Bedding</td>
+                        <td className="px-2 py-2 border text-center">{CREWS.exc.rate}</td>
+                        <td className="px-2 py-2 border text-center">{dur.exc}</td>
+                        <td className="px-2 py-2 border text-center font-bold">{r2Student.excS}</td>
+                        <td className="px-2 py-2 border text-center font-bold">{r2Student.excE}</td>
+                      </tr>
+                      <tr className="text-green-700">
+                        <td className="px-2 py-2 border">Pipe Laying & Alignment</td>
+                        <td className="px-2 py-2 border text-center">{CREWS.pipe.rate}</td>
+                        <td className="px-2 py-2 border text-center">{dur.pipe}</td>
+                        <td className="px-2 py-2 border text-center font-bold">{r2Student.pipeS}</td>
+                        <td className="px-2 py-2 border text-center font-bold">{r2Student.pipeE}</td>
+                      </tr>
+                      <tr className="text-orange-700">
+                        <td className="px-2 py-2 border">Backfill & Compaction</td>
+                        <td className="px-2 py-2 border text-center">{CREWS.back.rate}</td>
+                        <td className="px-2 py-2 border text-center">{dur.back}</td>
+                        <td className="px-2 py-2 border text-center font-bold">{r2Student.backS}</td>
+                        <td className="px-2 py-2 border text-center font-bold">{r2Student.backE}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <div className="mt-3 p-3 bg-blue-50 rounded text-center">
+                    <span className="text-gray-600">Project Duration:</span>
+                    <span className="ml-2 text-xl font-bold text-blue-600">{r2Student.end} days</span>
+                  </div>
+                </div>
+
+                {/* Key Insight - only shows after all buffers are correct */}
+                {allBuffersOk && r2ConflictList.length === 0 && (
+                  <div className="mt-4 bg-green-50 border-2 border-green-400 rounded-lg p-4">
+                    <h4 className="font-bold text-green-800 mb-2">💡 Key Insight</h4>
+                    <p className="text-sm text-green-700 mb-2">
+                      By applying a {DEFAULT_BUFFER}-day buffer, you created a conflict-free LOB schedule.
+                    </p>
+                    <p className="text-sm text-green-700 mb-3">
+                      Notice how the LOB lines are now parallel and never cross — this means each crew always stays ahead of the next one at every location along the pipeline.
+                    </p>
+                    <div className="text-sm text-green-700 space-y-1">
+                      <div className="font-bold">Key observations:</div>
+                      <div>• Pipe Laying (slowest at {CREWS.pipe.rate} ft/day) controls the project duration</div>
+                      <div>• Backfill (fastest at {CREWS.back.rate} ft/day) must be delayed to avoid catching up to Pipe Laying</div>
+                      <div>• The buffer adds safety but also increases total project duration</div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-green-300 text-sm text-green-600">
+                      👉 In Round 3, you will explore how changing the buffer size affects the project duration.
+                    </div>
+                  </div>
+                )}
+
+                {/* Check Answer */}
+                <div className="mt-4">
+                  <button onClick={() => setR2Validated(true)} className="px-4 py-2 bg-blue-500 text-white rounded font-bold hover:bg-blue-600">
+                    Check Answer
+                  </button>
+
+                  {r2Validated && !r2IsCorrect && (
+                    <div className="mt-2 p-3 bg-red-100 text-red-700 rounded">
+                      ❌ Not correct. Ensure:
+                      <ul className="ml-4 mt-1 text-sm">
+                        <li>• Excavation starts on Day {r2Correct.excS} {r2Student.excS === r2Correct.excS ? '✅' : '❌'}</li>
+                        <li>• Pipe Laying starts on Day {r2Correct.pipeS} ({DEFAULT_BUFFER}-day buffer) {r2Student.pipeS === r2Correct.pipeS ? '✅' : '❌'}</li>
+                        <li>• Backfill starts on Day {r2Correct.backS} ({DEFAULT_BUFFER}-day buffer) {r2Student.backS === r2Correct.backS ? '✅' : '❌'}</li>
+                      </ul>
+                    </div>
+                  )}
+
+                  {r2Validated && r2IsCorrect && (
+                    <div className="mt-2 p-3 bg-green-100 text-green-700 rounded">
+                      ✅ Correct! All criteria met.
+                      <ul className="ml-4 mt-1 text-sm">
+                        <li>• Excavation starts Day {r2Correct.excS} ✓</li>
+                        <li>• {DEFAULT_BUFFER}-day buffer between Excavation and Pipe Laying ✓</li>
+                        <li>• {DEFAULT_BUFFER}-day buffer between Pipe Laying and Backfill ✓</li>
+                        <li>• No conflicts (lines don't cross) ✓</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </>);
+            })()}
           </div>
 
           {/* Section 3: Budget (after correct) */}
