@@ -40,262 +40,28 @@ const DURATIONS = {
   back: Math.ceil(PROJECT_LENGTH / CREWS.back.rate),
 };
 
-const getPositionAtDay = (startDay, rate, currentDay) => {
-  if (currentDay < startDay) return 0;
-  const daysWorked = currentDay - startDay + 1;
-  return Math.min(daysWorked * rate, PROJECT_LENGTH);
-};
-
-function QuizStep({ dur, onComplete }) {
-  const [answers, setAnswers] = useState({ q1: null, q2: null, q3: '' });
-  const [submitted, setSubmitted] = useState({ q1: false, q2: false, q3: false });
-
-  const correctAnswers = { q1: 'c', q2: 'b', q3: dur.back };
-
-  const isCorrect = {
-    q1: answers.q1 === correctAnswers.q1,
-    q2: answers.q2 === correctAnswers.q2,
-    q3: parseInt(answers.q3) === correctAnswers.q3,
-  };
-
-  const allCorrect =
-    submitted.q1 && submitted.q2 && submitted.q3 &&
-    isCorrect.q1 && isCorrect.q2 && isCorrect.q3;
-
-  // ✅ Option A: allow continue after all 3 are checked (even if wrong)
-  const allSubmitted = submitted.q1 && submitted.q2 && submitted.q3;
-
-  const handleSubmit = (questionId) =>
-    setSubmitted((prev) => ({ ...prev, [questionId]: true }));
-
-  const getOptionClass = (questionId, optionValue) => {
-    const isSelected = answers[questionId] === optionValue;
-    const isSubmitted = submitted[questionId];
-    const isThisCorrect = optionValue === correctAnswers[questionId];
-
-    if (!isSubmitted) {
-      return `block w-full p-3 rounded border-2 cursor-pointer transition-all text-left
-        ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`;
-    }
-    if (isThisCorrect) return 'block w-full p-3 rounded border-2 border-green-500 bg-green-50 text-left';
-    if (isSelected && !isThisCorrect) return 'block w-full p-3 rounded border-2 border-red-500 bg-red-50 text-left';
-    return 'block w-full p-3 rounded border-2 border-gray-200 bg-gray-50 text-left opacity-50';
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-        <h3 className="font-bold text-lg">📚 Step 1: Knowledge Check</h3>
-        <p className="text-sm text-gray-600 mt-1">
-          Before creating your schedule, answer these questions to confirm you understand the project basics.
-        </p>
-      </div>
-
-      {/* Q1 */}
-      <div className="bg-white rounded-lg shadow p-5">
-        <div className="flex items-start gap-3 mb-4">
-          <span className="bg-blue-100 text-blue-800 font-bold px-3 py-1 rounded-full text-sm">Q1</span>
-          <div>
-            <h4 className="font-bold">What is the correct sequence of activities?</h4>
-            <p className="text-sm text-gray-500">Select the order in which crews must work on the pipeline.</p>
-          </div>
-        </div>
-
-        <div className="space-y-2 mb-4">
-          {[
-            { value: 'a', label: 'Backfill → Pipe Laying → Excavation' },
-            { value: 'b', label: 'Pipe Laying → Excavation → Backfill' },
-            { value: 'c', label: 'Excavation → Pipe Laying → Backfill' },
-          ].map((option) => (
-            <button
-              key={option.value}
-              onClick={() => !submitted.q1 && setAnswers((prev) => ({ ...prev, q1: option.value }))}
-              className={getOptionClass('q1', option.value)}
-              disabled={submitted.q1}
-            >
-              <span className="font-medium">{option.value.toUpperCase()})</span> {option.label}
-              {submitted.q1 && option.value === correctAnswers.q1 && <span className="ml-2 text-green-600">✓</span>}
-            </button>
-          ))}
-        </div>
-
-        {!submitted.q1 ? (
-          <button
-            onClick={() => handleSubmit('q1')}
-            disabled={!answers.q1}
-            className={`px-4 py-2 rounded font-bold transition-all
-              ${answers.q1 ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-          >
-            Check Answer
-          </button>
-        ) : (
-          <div className={`p-3 rounded ${isCorrect.q1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-            {isCorrect.q1
-              ? '✅ Correct! You must dig before laying pipe, and lay pipe before backfilling.'
-              : '❌ Incorrect. Think about it: you cannot lay pipe without digging a trench first.'}
-          </div>
-        )}
-      </div>
-
-      {/* Q2 */}
-      <div className="bg-white rounded-lg shadow p-5">
-        <div className="flex items-start gap-3 mb-4">
-          <span className="bg-blue-100 text-blue-800 font-bold px-3 py-1 rounded-full text-sm">Q2</span>
-          <div>
-            <h4 className="font-bold">Which crew is the SLOWEST?</h4>
-            <p className="text-sm text-gray-500">Compare the production rates below.</p>
-          </div>
-        </div>
-
-        <div className="bg-gray-50 rounded p-3 mb-4">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-gray-500">
-                <th className="pb-2">Crew</th>
-                <th className="pb-2 text-right">Rate (ft/day)</th>
-                <th className="pb-2 text-right">Duration (days)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td>⛏️ Excavation</td><td className="text-right font-mono">{CREWS.exc.rate}</td><td className="text-right font-mono">{dur.exc}</td></tr>
-              <tr><td>🔧 Pipe Laying</td><td className="text-right font-mono">{CREWS.pipe.rate}</td><td className="text-right font-mono">{dur.pipe}</td></tr>
-              <tr><td>🚜 Backfill</td><td className="text-right font-mono">{CREWS.back.rate}</td><td className="text-right font-mono">{dur.back}</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div className="space-y-2 mb-4">
-          {[
-            { value: 'a', label: `Excavation (${CREWS.exc.rate} ft/day)` },
-            { value: 'b', label: `Pipe Laying (${CREWS.pipe.rate} ft/day)` },
-            { value: 'c', label: `Backfill (${CREWS.back.rate} ft/day)` },
-          ].map((option) => (
-            <button
-              key={option.value}
-              onClick={() => !submitted.q2 && setAnswers((prev) => ({ ...prev, q2: option.value }))}
-              className={getOptionClass('q2', option.value)}
-              disabled={submitted.q2}
-            >
-              <span className="font-medium">{option.value.toUpperCase()})</span> {option.label}
-              {submitted.q2 && option.value === correctAnswers.q2 && <span className="ml-2 text-green-600">✓ SLOWEST</span>}
-            </button>
-          ))}
-        </div>
-
-        {!submitted.q2 ? (
-          <button
-            onClick={() => handleSubmit('q2')}
-            disabled={!answers.q2}
-            className={`px-4 py-2 rounded font-bold transition-all
-              ${answers.q2 ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-          >
-            Check Answer
-          </button>
-        ) : (
-          <div className={`p-3 rounded ${isCorrect.q2 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-            {isCorrect.q2
-              ? '✅ Correct! Pipe Laying is the slowest. This will be important for scheduling!'
-              : '❌ Incorrect. The slowest crew has the LOWEST production rate (ft/day).'}
-          </div>
-        )}
-      </div>
-
-      {/* Q3 */}
-      <div className="bg-white rounded-lg shadow p-5">
-        <div className="flex items-start gap-3 mb-4">
-          <span className="bg-blue-100 text-blue-800 font-bold px-3 py-1 rounded-full text-sm">Q3</span>
-          <div>
-            <h4 className="font-bold">What is Backfill's duration?</h4>
-            <p className="text-sm text-gray-500">Calculate using the formula below.</p>
-          </div>
-        </div>
-
-        <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mb-4">
-          <div className="font-mono text-sm"><strong>Formula:</strong> Duration = ROUNDUP(Project Length ÷ Rate)</div>
-          <div className="font-mono text-sm mt-1"><strong>Given:</strong> Project Length = {PROJECT_LENGTH.toLocaleString()} ft | Backfill Rate = {CREWS.back.rate} ft/day</div>
-        </div>
-
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-gray-600">Backfill Duration =</span>
-          <input
-            type="number"
-            value={answers.q3}
-            onChange={(e) => setAnswers((prev) => ({ ...prev, q3: e.target.value }))}
-            disabled={submitted.q3}
-            className={`w-24 px-3 py-2 border-2 rounded text-center font-bold text-lg
-              ${submitted.q3 ? (isCorrect.q3 ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50') : 'border-gray-300 focus:border-blue-500'}`}
-            placeholder="?"
-          />
-          <span className="text-gray-600">days</span>
-        </div>
-
-        {!submitted.q3 ? (
-          <button
-            onClick={() => handleSubmit('q3')}
-            disabled={!answers.q3}
-            className={`px-4 py-2 rounded font-bold transition-all
-              ${answers.q3 ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-          >
-            Check Answer
-          </button>
-        ) : (
-          <div className={`p-3 rounded ${isCorrect.q3 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-            {isCorrect.q3 ? `✅ Correct! Rounds up to ${dur.back} days.` : `❌ Incorrect. It rounds UP to ${dur.back} days.`}
-          </div>
-        )}
-      </div>
-
-      {/* ✅ Continue even if wrong (after all 3 checked) */}
-      {allSubmitted && (
-        <div
-          className={`border-2 rounded-lg p-5 text-center ${
-            allCorrect ? 'bg-green-50 border-green-500' : 'bg-yellow-50 border-yellow-500'
-          }`}
-        >
-          <h3 className="font-bold text-xl mb-2">
-            {allCorrect ? 'All Questions Correct!' : 'Quiz Complete'}
-          </h3>
-
-          <p className="mb-4 text-sm">
-            {allCorrect ? "You're ready to create your schedule." : 'You can continue, but review the corrections above.'}
-          </p>
-
-          <button
-            onClick={onComplete}
-            className="px-6 py-3 bg-green-600 text-white rounded-lg font-bold text-lg hover:bg-green-700 transition-all"
-          >
-            Continue to Step 2: Interactive Scheduler →
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function DraggableBarChart({ schedule, onScheduleChange, conflictStatus }) {
+function DraggableBarChart({ schedule, onScheduleChange }) {
   const chartRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [dragOffset, setDragOffset] = useState(0);
 
   const CHART_WIDTH = 700;
-  const CHART_PADDING = 100;
-  const MAX_DAY = 150;
-  const PIXELS_PER_DAY = (CHART_WIDTH - CHART_PADDING) / MAX_DAY;
-  const BAR_HEIGHT = 32;
-  const BAR_GAP = 8;
+  const CHART_PADDING_LEFT = 180;
+  const MAX_DAY = 160;
+  const USABLE_WIDTH = CHART_WIDTH - CHART_PADDING_LEFT - 20;
+  const PIXELS_PER_DAY = USABLE_WIDTH / MAX_DAY;
+  const BAR_HEIGHT = 36;
+  const BAR_GAP = 12;
+  const CHART_HEIGHT = 4 * (BAR_HEIGHT + BAR_GAP) + 60;
 
-  const dayToPixel = (day) => CHART_PADDING + day * PIXELS_PER_DAY;
-
-  const pixelToDay = (pixel) => {
-    const day = Math.round((pixel - CHART_PADDING) / PIXELS_PER_DAY);
-    return Math.max(MOB_DAYS + 1, Math.min(day, 140));
-  };
+  const dayToPixel = (day) => CHART_PADDING_LEFT + day * PIXELS_PER_DAY;
+  const pixelToDay = (pixel) => Math.max(MOB_DAYS + 1, Math.min(Math.round((pixel - CHART_PADDING_LEFT) / PIXELS_PER_DAY), MAX_DAY - 20));
 
   const handleMouseDown = (barType, e) => {
     e.preventDefault();
     const rect = chartRef.current.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
-    const currentStart = barType === 'pipe' ? schedule.pipeStart : schedule.backStart;
+    let currentStart = barType === 'exc' ? schedule.excStart : barType === 'pipe' ? schedule.pipeStart : schedule.backStart;
     setDragOffset(mouseX - dayToPixel(currentStart));
     setDragging(barType);
   };
@@ -303,13 +69,10 @@ function DraggableBarChart({ schedule, onScheduleChange, conflictStatus }) {
   const handleMouseMove = useCallback((e) => {
     if (!dragging || !chartRef.current) return;
     const rect = chartRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const newDay = pixelToDay(mouseX - dragOffset);
-
-    onScheduleChange({
-      ...schedule,
-      [dragging === 'pipe' ? 'pipeStart' : 'backStart']: newDay
-    });
+    const newDay = pixelToDay(e.clientX - rect.left - dragOffset);
+    if (dragging === 'exc') onScheduleChange({ ...schedule, excStart: newDay });
+    else if (dragging === 'pipe') onScheduleChange({ ...schedule, pipeStart: newDay });
+    else if (dragging === 'back') onScheduleChange({ ...schedule, backStart: newDay });
   }, [dragging, dragOffset, schedule, onScheduleChange]);
 
   const handleMouseUp = useCallback(() => setDragging(null), []);
@@ -318,266 +81,125 @@ function DraggableBarChart({ schedule, onScheduleChange, conflictStatus }) {
     if (!dragging) return;
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
+    return () => { window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); };
   }, [dragging, handleMouseMove, handleMouseUp]);
 
   const bars = [
-    { id: 'mob', label: 'Mobilization', start: 1, end: MOB_DAYS, color: 'bg-gray-400', locked: true },
-    { id: 'exc', label: 'Excavation', start: MOB_DAYS + 1, end: (MOB_DAYS + 1) + DURATIONS.exc - 1, color: 'bg-blue-500', locked: true },
-    { id: 'pipe', label: 'Pipe Laying', start: schedule.pipeStart, end: schedule.pipeStart + DURATIONS.pipe - 1, color: 'bg-green-500', locked: false },
-    { id: 'back', label: 'Backfill', start: schedule.backStart, end: schedule.backStart + DURATIONS.back - 1, color: 'bg-orange-500', locked: false }
+    { id: 'mob', label: 'Mobilization', start: 1, duration: MOB_DAYS, color: 'bg-gray-400', locked: true },
+    { id: 'exc', label: 'Excavation & Bedding', start: schedule.excStart, duration: DURATIONS.exc, color: 'bg-blue-500', locked: false },
+    { id: 'pipe', label: 'Pipe Laying & Alignment', start: schedule.pipeStart, duration: DURATIONS.pipe, color: 'bg-green-500', locked: false },
+    { id: 'back', label: 'Backfill & Compaction', start: schedule.backStart, duration: DURATIONS.back, color: 'bg-orange-500', locked: false },
   ];
 
-  return (
-    <div
-      ref={chartRef}
-      className="relative bg-gray-50 rounded-lg p-4 overflow-x-auto"
-      style={{ width: '100%', minWidth: CHART_WIDTH, height: bars.length * (BAR_HEIGHT + BAR_GAP) + 80 }}
-    >
-      {[0, 20, 40, 60, 80, 100, 120, 140].map(day => (
-        <div key={`grid-${day}`} className="absolute top-0 bottom-8 w-px bg-gray-200" style={{ left: dayToPixel(day) }} />
-      ))}
+  const xTicks = [0, 20, 40, 60, 80, 100, 120, 140, 160];
 
-      <div className="absolute bottom-2 left-0 right-0 flex text-xs text-gray-500">
-        {[0, 20, 40, 60, 80, 100, 120, 140].map(day => (
-          <span key={`tick-${day}`} className="absolute" style={{ left: dayToPixel(day) - 10 }}>{day}</span>
+  return (
+    <div className="relative">
+      {/* Legend */}
+      <div className="flex flex-wrap gap-4 mb-4 text-sm justify-center">
+        <div className="flex items-center gap-2"><div className="w-4 h-4 bg-gray-400 rounded"></div><span>Mobilization</span></div>
+        <div className="flex items-center gap-2"><div className="w-4 h-4 bg-blue-500 rounded"></div><span>Excavation & Bedding</span></div>
+        <div className="flex items-center gap-2"><div className="w-4 h-4 bg-green-500 rounded"></div><span>Pipe Laying & Alignment</span></div>
+        <div className="flex items-center gap-2"><div className="w-4 h-4 bg-orange-500 rounded"></div><span>Backfill & Compaction</span></div>
+      </div>
+
+      {/* Chart */}
+      <div ref={chartRef} className="relative bg-gray-50 rounded-lg border" style={{ width: CHART_WIDTH, height: CHART_HEIGHT, margin: '0 auto' }}>
+        {/* Y-axis label */}
+        <div className="absolute text-sm font-medium text-gray-600" style={{ left: 8, top: '50%', transform: 'rotate(-90deg) translateX(-50%)', transformOrigin: 'left center' }}>Activity</div>
+
+        {/* Grid lines */}
+        {xTicks.map(day => (
+          <div key={`grid-${day}`} className="absolute w-px bg-gray-200" style={{ left: dayToPixel(day), top: 10, bottom: 40 }} />
         ))}
-      </div>
 
-      {bars.map((bar, index) => (
-        <div
-          key={`label-${bar.id}`}
-          className="absolute left-2 text-xs font-medium text-gray-600 w-24"
-          style={{ top: index * (BAR_HEIGHT + BAR_GAP) + 15 + BAR_HEIGHT / 2 - 8 }}
-        >
-          {bar.label}
-        </div>
-      ))}
+        {/* Activity labels */}
+        {bars.map((bar, index) => (
+          <div key={`label-${bar.id}`} className="absolute text-sm text-gray-700 text-right pr-3" style={{ left: 20, width: CHART_PADDING_LEFT - 30, top: index * (BAR_HEIGHT + BAR_GAP) + 20 + BAR_HEIGHT / 2 - 10 }}>{bar.label}</div>
+        ))}
 
-      {bars.map((bar, index) => (
-        <div
-          key={bar.id}
-          className={`absolute ${bar.color} rounded flex items-center justify-center text-white text-xs font-bold
-            ${bar.locked ? 'cursor-not-allowed opacity-90' : 'cursor-grab active:cursor-grabbing shadow-lg hover:shadow-xl'}
-            ${dragging === bar.id ? 'ring-4 ring-yellow-300 shadow-xl z-10' : ''}
-            ${!bar.locked && conflictStatus.hasConflict ? 'animate-pulse' : ''}
-            transition-shadow`}
-          style={{
-            left: dayToPixel(bar.start),
-            width: Math.max((bar.end - bar.start + 1) * PIXELS_PER_DAY, 30),
-            height: BAR_HEIGHT,
-            top: index * (BAR_HEIGHT + BAR_GAP) + 15
-          }}
-          onMouseDown={bar.locked ? undefined : (e) => handleMouseDown(bar.id, e)}
-        >
-          {bar.locked && <span className="mr-1">🔒</span>}
-          {bar.start}-{bar.end}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function PipelineViewer({ schedule, viewDay, onViewDayChange }) {
-  const projectEnd = Math.max(
-    (MOB_DAYS + 1) + DURATIONS.exc - 1,
-    schedule.pipeStart + DURATIONS.pipe - 1,
-    schedule.backStart + DURATIONS.back - 1
-  );
-
-  const positions = {
-    exc: getPositionAtDay(MOB_DAYS + 1, CREWS.exc.rate, viewDay),
-    pipe: getPositionAtDay(schedule.pipeStart, CREWS.pipe.rate, viewDay),
-    back: getPositionAtDay(schedule.backStart, CREWS.back.rate, viewDay)
-  };
-
-  const conflicts = [];
-  if (positions.pipe > positions.exc && positions.exc < PROJECT_LENGTH) conflicts.push({ type: 'pipe-exc', diff: positions.pipe - positions.exc });
-  if (positions.back > positions.pipe && positions.pipe < PROJECT_LENGTH) conflicts.push({ type: 'back-pipe', diff: positions.back - positions.pipe });
-
-  return (
-    <div className="bg-white rounded-lg shadow p-4">
-      <h4 className="font-bold mb-3">📍 Pipeline Position at Day {viewDay}</h4>
-
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-sm text-gray-500">Day:</span>
-        <input
-          type="range"
-          min={MOB_DAYS + 1}
-          max={projectEnd}
-          value={viewDay}
-          onChange={(e) => onViewDayChange(parseInt(e.target.value))}
-          className="flex-1"
-        />
-        <input
-          type="number"
-          min={MOB_DAYS + 1}
-          max={projectEnd}
-          value={viewDay}
-          onChange={(e) => onViewDayChange(Math.max(MOB_DAYS + 1, Math.min(parseInt(e.target.value) || (MOB_DAYS + 1), projectEnd)))}
-          className="w-16 px-2 py-1 border rounded text-center"
-        />
-      </div>
-
-      <div className="relative bg-gray-100 rounded-lg p-4 mb-4">
-        <div className="flex justify-between text-xs text-gray-500 mb-2">
-          <span>0 ft</span><span>4,000</span><span>8,000</span><span>12,000</span><span>{PROJECT_LENGTH.toLocaleString()} ft</span>
-        </div>
-
-        <div className="h-2 bg-gray-300 rounded-full mb-4" />
-
-        {[
-          { id: 'exc', name: 'Excavation', icon: '⛏️', color: 'bg-blue-500', pos: positions.exc },
-          { id: 'pipe', name: 'Pipe Laying', icon: '🔧', color: 'bg-green-500', pos: positions.pipe },
-          { id: 'back', name: 'Backfill', icon: '🚜', color: 'bg-orange-500', pos: positions.back }
-        ].map((crew) => (
-          <div key={crew.id} className="relative h-10 mb-2">
-            <div className={`absolute h-3 ${crew.color} rounded-full top-3`} style={{ width: `${(crew.pos / PROJECT_LENGTH) * 100}%` }} />
-            <div className="absolute top-0 transform -translate-x-1/2 text-xl" style={{ left: `${(crew.pos / PROJECT_LENGTH) * 100}%` }}>
-              {crew.icon}
-            </div>
-            <span className="absolute right-0 top-2 text-xs text-gray-600">
-              {crew.name}: {crew.pos.toLocaleString()} ft
-            </span>
+        {/* Bars */}
+        {bars.map((bar, index) => (
+          <div
+            key={bar.id}
+            className={`absolute ${bar.color} rounded flex items-center justify-center text-white text-xs font-bold shadow ${bar.locked ? 'cursor-not-allowed opacity-80' : 'cursor-grab active:cursor-grabbing hover:shadow-lg'} ${dragging === bar.id ? 'ring-4 ring-yellow-400 shadow-xl z-10' : ''}`}
+            style={{ left: dayToPixel(bar.start), width: Math.max(bar.duration * PIXELS_PER_DAY, 40), height: BAR_HEIGHT, top: index * (BAR_HEIGHT + BAR_GAP) + 20 }}
+            onMouseDown={bar.locked ? undefined : (e) => handleMouseDown(bar.id, e)}>
+            {bar.locked && <span className="mr-1">🔒</span>}{bar.start} - {bar.start + bar.duration - 1}
           </div>
         ))}
-      </div>
 
-      {conflicts.length > 0 ? (
-        <div className="bg-red-50 border border-red-200 rounded p-3">
-          <div className="font-bold text-red-700 mb-2">❌ Conflict at Day {viewDay}!</div>
-          {conflicts.map((c, i) => (
-            <div key={i} className="text-sm text-red-600">
-              {c.type === 'back-pipe'
-                ? `🚜 Backfill is ${c.diff.toLocaleString()} ft AHEAD of 🔧 Pipe Laying`
-                : `🔧 Pipe Laying is ${c.diff.toLocaleString()} ft AHEAD of ⛏️ Excavation`}
-            </div>
+        {/* X-axis ticks and labels */}
+        <div className="absolute bottom-0 left-0 right-0 h-10">
+          {xTicks.map(day => (
+            <div key={`tick-${day}`} className="absolute text-xs text-gray-500" style={{ left: dayToPixel(day), transform: 'translateX(-50%)', bottom: 20 }}>{day}</div>
           ))}
+          <div className="absolute text-sm font-medium text-gray-600" style={{ left: '50%', transform: 'translateX(-50%)', bottom: 2 }}>Time (days)</div>
         </div>
-      ) : (
-        <div className="bg-green-50 border border-green-200 rounded p-3">
-          <div className="font-bold text-green-700">✅ No conflict at Day {viewDay}</div>
-          <div className="text-sm text-green-600">All crews are in proper sequence.</div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
 
-function SchedulerStep({ onComplete }) {
-  const [schedule, setSchedule] = useState({ pipeStart: MOB_DAYS + 1, backStart: MOB_DAYS + 1 });
-  const [viewDay, setViewDay] = useState(MOB_DAYS + 30);
+function Round1({ onComplete }) {
+  const [schedule, setSchedule] = useState({ excStart: MOB_DAYS + 1, pipeStart: MOB_DAYS + 1, backStart: MOB_DAYS + 1 });
 
-  const fullSchedule = {
-    excS: MOB_DAYS + 1,
-    excE: (MOB_DAYS + 1) + DURATIONS.exc - 1,
-    pipeS: schedule.pipeStart,
-    pipeE: schedule.pipeStart + DURATIONS.pipe - 1,
-    backS: schedule.backStart,
-    backE: schedule.backStart + DURATIONS.back - 1,
-    end: Math.max((MOB_DAYS + 1) + DURATIONS.exc - 1, schedule.pipeStart + DURATIONS.pipe - 1, schedule.backStart + DURATIONS.back - 1)
-  };
-
-  const projectEnd = fullSchedule.end;
-
-  const checkAllConflicts = useCallback(() => {
-    for (let day = MOB_DAYS + 1; day <= projectEnd; day++) {
-      const excPos = getPositionAtDay(MOB_DAYS + 1, CREWS.exc.rate, day);
-      const pipePos = getPositionAtDay(schedule.pipeStart, CREWS.pipe.rate, day);
-      const backPos = getPositionAtDay(schedule.backStart, CREWS.back.rate, day);
-
-      if (pipePos > excPos && excPos < PROJECT_LENGTH) return { hasConflict: true, firstConflictDay: day, type: 'pipe-exc' };
-      if (backPos > pipePos && pipePos < PROJECT_LENGTH) return { hasConflict: true, firstConflictDay: day, type: 'back-pipe' };
-    }
-    return { hasConflict: false, firstConflictDay: null, type: null };
-  }, [schedule, projectEnd]);
-
-  const conflictStatus = checkAllConflicts();
-  const canProceed = !conflictStatus.hasConflict;
-
-  const handleReset = () => {
-    setSchedule({ pipeStart: MOB_DAYS + 1, backStart: MOB_DAYS + 1 });
-    setViewDay(MOB_DAYS + 30);
-  };
-
-  const jumpToConflict = () => {
-    if (conflictStatus.firstConflictDay) setViewDay(conflictStatus.firstConflictDay);
-  };
+  const fullSchedule = useMemo(() => ({
+    excS: schedule.excStart, excE: schedule.excStart + DURATIONS.exc - 1,
+    pipeS: schedule.pipeStart, pipeE: schedule.pipeStart + DURATIONS.pipe - 1,
+    backS: schedule.backStart, backE: schedule.backStart + DURATIONS.back - 1,
+    end: Math.max(schedule.excStart + DURATIONS.exc - 1, schedule.pipeStart + DURATIONS.pipe - 1, schedule.backStart + DURATIONS.back - 1),
+  }), [schedule]);
 
   return (
-    <div className="space-y-4">
-      <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
-        <h3 className="font-bold text-lg">🎮 Step 2: Interactive Bar Chart Scheduler</h3>
-        <p className="text-sm text-gray-600 mt-1">
-          Drag the <span className="text-green-600 font-bold">green</span> and <span className="text-orange-600 font-bold">orange</span> bars to create a conflict-free schedule.
-        </p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+        <h3 className="font-bold text-xl text-blue-900">📋 Round 1: Create Your Schedule</h3>
+        <p className="text-gray-600 mt-1">Schedule three crews to complete the pipeline. Crews can start working after mobilization (Day 15).</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex justify-between items-center mb-3">
-          <h4 className="font-bold">📊 Drag the Bars to Adjust Start Times</h4>
-          <button onClick={handleReset} className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300">
-            🔄 Reset
-          </button>
+      {/* Crew Sequence */}
+      <div className="bg-white rounded-lg shadow p-5">
+        <div className="flex justify-center items-center gap-4 text-center">
+          <div className="flex flex-col items-center"><span className="text-3xl">⛏️</span><span className="font-medium text-sm">Excavation &<br/>Bedding</span><span className="text-blue-600 font-bold">{DURATIONS.exc} days</span></div>
+          <span className="text-2xl text-gray-400">→</span>
+          <div className="flex flex-col items-center"><span className="text-3xl">🔧</span><span className="font-medium text-sm">Pipe Laying &<br/>Alignment</span><span className="text-green-600 font-bold">{DURATIONS.pipe} days</span></div>
+          <span className="text-2xl text-gray-400">→</span>
+          <div className="flex flex-col items-center"><span className="text-3xl">🚜</span><span className="font-medium text-sm">Backfill &<br/>Compaction</span><span className="text-orange-600 font-bold">{DURATIONS.back} days</span></div>
         </div>
-
-        <DraggableBarChart schedule={schedule} onScheduleChange={setSchedule} conflictStatus={conflictStatus} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white rounded-lg shadow p-4">
-          <h4 className="font-bold mb-3">📋 Schedule Table</h4>
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="px-3 py-2 border text-left">Activity</th>
-                <th className="px-3 py-2 border text-center">Start</th>
-                <th className="px-3 py-2 border text-center">End</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="bg-gray-50"><td className="px-3 py-2 border">📦 Mobilization</td><td className="px-3 py-2 border text-center">1</td><td className="px-3 py-2 border text-center">{MOB_DAYS}</td></tr>
-              <tr className="bg-blue-50"><td className="px-3 py-2 border">⛏️ Excavation</td><td className="px-3 py-2 border text-center font-bold">{fullSchedule.excS} 🔒</td><td className="px-3 py-2 border text-center font-bold">{fullSchedule.excE}</td></tr>
-              <tr className="bg-green-50"><td className="px-3 py-2 border">🔧 Pipe Laying</td><td className="px-3 py-2 border text-center font-bold">{fullSchedule.pipeS}</td><td className="px-3 py-2 border text-center font-bold">{fullSchedule.pipeE}</td></tr>
-              <tr className="bg-orange-50"><td className="px-3 py-2 border">🚜 Backfill</td><td className="px-3 py-2 border text-center font-bold">{fullSchedule.backS}</td><td className="px-3 py-2 border text-center font-bold">{fullSchedule.backE}</td></tr>
-            </tbody>
-          </table>
+      {/* Duration Calculation Table */}
+      <div className="bg-white rounded-lg shadow p-5">
+        <h4 className="font-bold text-gray-700 mb-3">📐 How we calculated the durations:</h4>
+        <table className="w-full text-sm">
+          <thead className="bg-gray-100"><tr><th className="px-4 py-2 text-left">Activity</th><th className="px-4 py-2 text-center">Project Length</th><th className="px-4 py-2 text-center">÷</th><th className="px-4 py-2 text-center">Rate</th><th className="px-4 py-2 text-center">=</th><th className="px-4 py-2 text-center">Duration</th></tr></thead>
+          <tbody>
+            <tr className="border-b"><td className="px-4 py-3 font-medium">⛏️ Excavation & Bedding</td><td className="px-4 py-3 text-center">{PROJECT_LENGTH.toLocaleString()} ft</td><td className="px-4 py-3 text-center">÷</td><td className="px-4 py-3 text-center">{CREWS.exc.rate} ft/day</td><td className="px-4 py-3 text-center">=</td><td className="px-4 py-3 text-center font-bold text-blue-600">{DURATIONS.exc} days</td></tr>
+            <tr className="border-b"><td className="px-4 py-3 font-medium">🔧 Pipe Laying & Alignment</td><td className="px-4 py-3 text-center">{PROJECT_LENGTH.toLocaleString()} ft</td><td className="px-4 py-3 text-center">÷</td><td className="px-4 py-3 text-center">{CREWS.pipe.rate} ft/day</td><td className="px-4 py-3 text-center">=</td><td className="px-4 py-3 text-center font-bold text-green-600">{DURATIONS.pipe} days</td></tr>
+            <tr><td className="px-4 py-3 font-medium">🚜 Backfill & Compaction</td><td className="px-4 py-3 text-center">{PROJECT_LENGTH.toLocaleString()} ft</td><td className="px-4 py-3 text-center">÷</td><td className="px-4 py-3 text-center">{CREWS.back.rate} ft/day</td><td className="px-4 py-3 text-center">=</td><td className="px-4 py-3 text-center font-bold text-orange-600">{DURATIONS.back} days</td></tr>
+          </tbody>
+        </table>
+      </div>
 
-          <div className="mt-4 p-3 bg-blue-50 rounded text-center">
-            <span className="text-gray-600">Project End:</span>
-            <span className="ml-2 text-2xl font-bold text-blue-600">{projectEnd} days</span>
-          </div>
-
-          {conflictStatus.hasConflict && (
-            <div className="mt-3 bg-red-50 border border-red-200 rounded p-3">
-              <div className="font-bold text-red-700">Conflict detected (first at Day {conflictStatus.firstConflictDay})</div>
-              <button onClick={jumpToConflict} className="mt-2 px-3 py-2 bg-red-600 text-white rounded font-bold hover:bg-red-700">
-                View Conflict Day
-              </button>
-            </div>
-          )}
+      {/* Bar Chart */}
+      <div className="bg-white rounded-lg shadow p-5">
+        <div className="flex justify-between items-center mb-4">
+          <h4 className="font-bold text-gray-700">📊 Drag the bars to set start days</h4>
+          <button onClick={() => setSchedule({ excStart: MOB_DAYS + 1, pipeStart: MOB_DAYS + 1, backStart: MOB_DAYS + 1 })} className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300">🔄 Reset</button>
         </div>
-
-        <PipelineViewer schedule={schedule} viewDay={viewDay} onViewDayChange={setViewDay} />
+        <DraggableBarChart schedule={schedule} onScheduleChange={setSchedule} />
       </div>
 
-      <div className="text-center">
-        {canProceed ? (
-          <button
-            onClick={() => onComplete(fullSchedule)}
-            className="px-8 py-4 bg-green-600 text-white rounded-lg font-bold text-lg hover:bg-green-700 shadow-lg"
-          >
-            ✅ Complete R1 → Proceed to R2
-          </button>
-        ) : (
-          <button disabled className="px-8 py-4 bg-gray-300 text-gray-500 rounded-lg font-bold text-lg cursor-not-allowed">
-            🚫 Fix All Conflicts to Proceed
-          </button>
-        )}
+      {/* Project Duration */}
+      <div className="bg-white rounded-lg shadow p-5 text-center">
+        <span className="text-gray-600">Project Duration:</span>
+        <span className="ml-3 text-3xl font-bold text-blue-600">{fullSchedule.end} days</span>
       </div>
+
+      {/* Complete Button */}
+      <button onClick={() => onComplete(fullSchedule)} className="w-full py-4 bg-blue-600 text-white rounded-lg font-bold text-lg hover:bg-blue-700">Complete R1 →</button>
     </div>
   );
 }
@@ -587,9 +209,8 @@ export default function LOBGame() {
   const [round, setRound] = useState(0);
   const [name, setName] = useState('');
 
-  // R1 state
-  const [r1Step, setR1Step] = useState(1); // 1=Quiz, 2=Scheduler
-  const [r1Input, setR1Input] = useState({ pipeS: '', backS: '' });
+  // R1 state - simplified for new design
+  const [r1Schedule, setR1Schedule] = useState(null);
 
   const [r2Input, setR2Input] = useState({ excS: '', excE: '', pipeS: '', pipeE: '', backS: '', backE: '' });
   const [r2Validated, setR2Validated] = useState(false);
@@ -609,15 +230,11 @@ export default function LOBGame() {
     back: Math.ceil(PROJECT_LENGTH / CREWS.back.rate),
   }), []);
 
+  // R1 student schedule from new design
   const r1Student = useMemo(() => {
-    const excS = MOB_DAYS + 1;
-    const excE = excS + dur.exc - 1;
-    const pipeS = parseInt(r1Input.pipeS) || 0;
-    const pipeE = pipeS > 0 ? pipeS + dur.pipe - 1 : 0;
-    const backS = parseInt(r1Input.backS) || 0;
-    const backE = backS > 0 ? backS + dur.back - 1 : 0;
-    return { excS, excE, pipeS, pipeE, backS, backE, end: Math.max(excE, pipeE, backE) };
-  }, [r1Input, dur]);
+    if (!r1Schedule) return { excS: 0, excE: 0, pipeS: 0, pipeE: 0, backS: 0, backE: 0, end: 0 };
+    return r1Schedule;
+  }, [r1Schedule]);
 
   const r2Correct = useMemo(() => {
     const excS = MOB_DAYS + 1, excE = excS + dur.exc - 1;
@@ -1023,38 +640,13 @@ export default function LOBGame() {
       </div>
 
       <div className="max-w-5xl mx-auto p-4 space-y-4">
-        {/* R1: Drag Scheduler + Quiz (REPLACED) */}
+        {/* R1: NEW SIMPLIFIED DESIGN */}
         {round === 1 && (
-          <>
-            <div className="bg-white rounded-lg shadow p-3 mb-4">
-              <div className="flex items-center gap-2">
-                <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${r1Step === 1 ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
-                  {r1Step === 1 ? '1️⃣' : '✅'} Knowledge Quiz
-                </div>
-                <span className="text-gray-400">→</span>
-                <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${r1Step === 2 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-500'}`}>
-                  2️⃣ Interactive Scheduler
-                </div>
-              </div>
-            </div>
-
-            {r1Step === 1 && <QuizStep dur={dur} onComplete={() => setR1Step(2)} />}
-
-            {r1Step === 2 && (
-              <SchedulerStep
-                onComplete={(fullSchedule) => {
-                  // feed R2 "Your R1 schedule as LOB"
-                  setR1Input({ pipeS: String(fullSchedule.pipeS), backS: String(fullSchedule.backS) });
-
-                  // store R1 results for summary table
-                  setResults(p => ({ ...p, 1: { round: 1, ...fullSchedule } }));
-
-                  // go to R2
-                  setRound(2);
-                }}
-              />
-            )}
-          </>
+          <Round1 onComplete={(fullSchedule) => {
+            setR1Schedule(fullSchedule);
+            setResults(p => ({ ...p, 1: { round: 1, ...fullSchedule } }));
+            setRound(2);
+          }} />
         )}
 
         {/* R2: LOB Analysis (your original, unchanged) */}
@@ -1266,7 +858,7 @@ export default function LOBGame() {
               </tbody>
             </table>
           </div>
-                    {/* R5: LOB Chart (based on the R5 schedule) */}
+          {/* R5: LOB Chart (based on the R5 schedule) */}
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-2">📈 R5 Line of Balance (LOB)</h3>
           
@@ -1298,7 +890,6 @@ export default function LOBGame() {
               This LOB is generated directly from your R5 start/end days and productivity rates.
             </div>
           </div>
-          ``
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-2">Constraints Check</h3>
             <div className="grid grid-cols-2 gap-4">
