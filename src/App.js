@@ -161,11 +161,11 @@ function Round1({ onComplete }) {
   const [durInput, setDurInput] = useState({ exc: '', pipe: '', back: '' });
   const [durValidated, setDurValidated] = useState(false);
   
-  // Schedule inputs (student inputs start and end)
+  // Schedule inputs (student inputs start only, end is auto-calculated)
   const [scheduleInput, setScheduleInput] = useState({ 
-    excS: '', excE: '', 
-    pipeS: '', pipeE: '', 
-    backS: '', backE: '' 
+    excS: '', 
+    pipeS: '', 
+    backS: '' 
   });
 
   // Parse durations
@@ -183,40 +183,37 @@ function Round1({ onComplete }) {
   };
   const allDurationsCorrect = durCorrect.exc && durCorrect.pipe && durCorrect.back;
 
-  // Parse schedule
+  // Parse schedule - End is auto-calculated from Start + Duration - 1
   const fullSchedule = useMemo(() => {
     const excS = parseInt(scheduleInput.excS) || 0;
-    const excE = parseInt(scheduleInput.excE) || 0;
     const pipeS = parseInt(scheduleInput.pipeS) || 0;
-    const pipeE = parseInt(scheduleInput.pipeE) || 0;
     const backS = parseInt(scheduleInput.backS) || 0;
-    const backE = parseInt(scheduleInput.backE) || 0;
+    
+    // Auto-calculate End = Start + Duration - 1
+    const excE = excS > 0 ? excS + CORRECT_DURATIONS.exc - 1 : 0;
+    const pipeE = pipeS > 0 ? pipeS + CORRECT_DURATIONS.pipe - 1 : 0;
+    const backE = backS > 0 ? backS + CORRECT_DURATIONS.back - 1 : 0;
     
     const projectEnd = Math.max(excE, pipeE, backE, MOB_DAYS);
     
     return { excS, excE, pipeS, pipeE, backS, backE, end: projectEnd };
   }, [scheduleInput]);
 
-  // Handle bar drag - updates schedule inputs
+  // Handle bar drag - updates schedule Start inputs (End auto-calculates)
   const handleBarDrag = useCallback((newSchedule) => {
     if (newSchedule.excStart > 0) {
-      const newEnd = newSchedule.excStart + CORRECT_DURATIONS.exc - 1;
-      setScheduleInput(prev => ({ ...prev, excS: String(newSchedule.excStart), excE: String(newEnd) }));
+      setScheduleInput(prev => ({ ...prev, excS: String(newSchedule.excStart) }));
     }
     if (newSchedule.pipeStart > 0 && newSchedule.pipeStart !== (parseInt(scheduleInput.pipeS) || 0)) {
-      const newEnd = newSchedule.pipeStart + CORRECT_DURATIONS.pipe - 1;
-      setScheduleInput(prev => ({ ...prev, pipeS: String(newSchedule.pipeStart), pipeE: String(newEnd) }));
+      setScheduleInput(prev => ({ ...prev, pipeS: String(newSchedule.pipeStart) }));
     }
     if (newSchedule.backStart > 0 && newSchedule.backStart !== (parseInt(scheduleInput.backS) || 0)) {
-      const newEnd = newSchedule.backStart + CORRECT_DURATIONS.back - 1;
-      setScheduleInput(prev => ({ ...prev, backS: String(newSchedule.backStart), backE: String(newEnd) }));
+      setScheduleInput(prev => ({ ...prev, backS: String(newSchedule.backStart) }));
     }
   }, [scheduleInput]);
 
   // Check if all schedule inputs are filled
-  const allScheduleFilled = fullSchedule.excS > 0 && fullSchedule.excE > 0 && 
-                            fullSchedule.pipeS > 0 && fullSchedule.pipeE > 0 && 
-                            fullSchedule.backS > 0 && fullSchedule.backE > 0;
+  const allScheduleFilled = fullSchedule.excS > 0 && fullSchedule.pipeS > 0 && fullSchedule.backS > 0;
 
   // InputCell component for consistent styling (like R2)
   const InputCell = ({ value, onChange, disabled }) => {
@@ -392,7 +389,7 @@ function Round1({ onComplete }) {
             </div>
           </div>
 
-          <p className="text-sm text-gray-600 mb-3">Input the Start and End day for each activity:</p>
+          <p className="text-sm text-gray-600 mb-3">Input the Start day for each activity. End is calculated automatically.</p>
           
           <table className="w-full text-sm border">
             <thead className="bg-gray-100">
@@ -401,7 +398,7 @@ function Round1({ onComplete }) {
                 <th className="px-2 py-2 border text-center">Rate (ft/day)</th>
                 <th className="px-2 py-2 border text-center">Duration (days)</th>
                 <th className="px-2 py-2 border text-center bg-yellow-50">Start</th>
-                <th className="px-2 py-2 border text-center bg-yellow-50">End</th>
+                <th className="px-2 py-2 border text-center">End</th>
               </tr>
             </thead>
             <tbody>
@@ -425,11 +422,8 @@ function Round1({ onComplete }) {
                     onChange={(e) => setScheduleInput({ ...scheduleInput, excS: e.target.value })}
                   />
                 </td>
-                <td className="px-2 py-2 border text-center">
-                  <InputCell 
-                    value={scheduleInput.excE} 
-                    onChange={(e) => setScheduleInput({ ...scheduleInput, excE: e.target.value })}
-                  />
+                <td className="px-2 py-2 border text-center font-bold">
+                  {fullSchedule.excE > 0 ? fullSchedule.excE : '-'}
                 </td>
               </tr>
               
@@ -444,11 +438,8 @@ function Round1({ onComplete }) {
                     onChange={(e) => setScheduleInput({ ...scheduleInput, pipeS: e.target.value })}
                   />
                 </td>
-                <td className="px-2 py-2 border text-center">
-                  <InputCell 
-                    value={scheduleInput.pipeE} 
-                    onChange={(e) => setScheduleInput({ ...scheduleInput, pipeE: e.target.value })}
-                  />
+                <td className="px-2 py-2 border text-center font-bold">
+                  {fullSchedule.pipeE > 0 ? fullSchedule.pipeE : '-'}
                 </td>
               </tr>
               
@@ -463,11 +454,8 @@ function Round1({ onComplete }) {
                     onChange={(e) => setScheduleInput({ ...scheduleInput, backS: e.target.value })}
                   />
                 </td>
-                <td className="px-2 py-2 border text-center">
-                  <InputCell 
-                    value={scheduleInput.backE} 
-                    onChange={(e) => setScheduleInput({ ...scheduleInput, backE: e.target.value })}
-                  />
+                <td className="px-2 py-2 border text-center font-bold">
+                  {fullSchedule.backE > 0 ? fullSchedule.backE : '-'}
                 </td>
               </tr>
             </tbody>
@@ -493,7 +481,7 @@ function Round1({ onComplete }) {
             </div>
             <button 
               onClick={() => {
-                setScheduleInput({ excS: '', excE: '', pipeS: '', pipeE: '', backS: '', backE: '' });
+                setScheduleInput({ excS: '', pipeS: '', backS: '' });
               }} 
               className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
             >
