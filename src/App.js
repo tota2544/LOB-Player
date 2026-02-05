@@ -792,8 +792,8 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
   const [hover, setHover] = useState(null);
 
   const CHART_WIDTH = 700;
-  const CHART_HEIGHT = 420;
-  const PADDING = { top: 40, right: 30, bottom: 50, left: 70 };
+  const CHART_HEIGHT = 460;
+  const PADDING = { top: 55, right: 30, bottom: 75, left: 70 };
   const PLOT_WIDTH = CHART_WIDTH - PADDING.left - PADDING.right;
   const PLOT_HEIGHT = CHART_HEIGHT - PADDING.top - PADDING.bottom;
   const MAX_DAY = 150;
@@ -890,27 +890,22 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
   const xTicks = [0, 20, 40, 60, 80, 100, 120, 140];
   const yTicks = [0, 4000, 8000, 12000, 16000];
 
-  // Buffer arrow helper: draws a double-headed arrow with label above or below
-  // position: 'above' puts label above arrow, 'below' puts label below arrow
+  // Buffer arrow helper: thin double-headed arrow with label above or below
   const BufferArrow = ({ x1, x2, y, label, isOk, position = 'above' }) => {
     const color = isOk ? '#16a34a' : '#ef4444';
     const midX = (x1 + x2) / 2;
-    const arrowSize = 7;
+    const ah = 5; // arrowhead size
     const width = Math.abs(x2 - x1);
     if (width < 3) return null;
-    const labelY = position === 'above' ? y - 8 : y + 22;
-    const rectY = position === 'above' ? y - 24 : y + 8;
+    const labelY = position === 'above' ? y - 6 : y + 18;
+    const rectY = position === 'above' ? y - 20 : y + 5;
     return (
       <g>
-        {/* Arrow line */}
-        <line x1={x1 + arrowSize} y1={y} x2={x2 - arrowSize} y2={y} stroke={color} strokeWidth="2.5" />
-        {/* Left arrowhead */}
-        <polygon points={`${x1},${y} ${x1 + arrowSize + 2},${y - arrowSize} ${x1 + arrowSize + 2},${y + arrowSize}`} fill={color} />
-        {/* Right arrowhead */}
-        <polygon points={`${x2},${y} ${x2 - arrowSize - 2},${y - arrowSize} ${x2 - arrowSize - 2},${y + arrowSize}`} fill={color} />
-        {/* Label background */}
-        <rect x={midX - 18} y={rectY} width="36" height="18" rx="4" fill={isOk ? '#dcfce7' : '#fee2e2'} stroke={color} strokeWidth="1" />
-        <text x={midX} y={labelY} textAnchor="middle" fontSize="12" fill={color} fontWeight="bold">{label}</text>
+        <line x1={x1} y1={y} x2={x2} y2={y} stroke={color} strokeWidth="1.5" />
+        <polygon points={`${x1},${y} ${x1 + ah},${y - ah + 1} ${x1 + ah},${y + ah - 1}`} fill={color} />
+        <polygon points={`${x2},${y} ${x2 - ah},${y - ah + 1} ${x2 - ah},${y + ah - 1}`} fill={color} />
+        <rect x={midX - 16} y={rectY} width="32" height="16" rx="3" fill={isOk ? '#dcfce7' : '#fee2e2'} stroke={color} strokeWidth="0.75" />
+        <text x={midX} y={labelY} textAnchor="middle" fontSize="11" fill={color} fontWeight="bold">{label}</text>
       </g>
     );
   };
@@ -981,27 +976,27 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
             </g>
           ))}
 
-          {/* Buffer arrows - Exc→Pipe at bottom: <--> then 5d below */}
+          {/* Buffer arrows - Exc→Pipe: below x-axis in bottom padding */}
           {r2Lines.exc.start > 0 && r2Lines.pipe.start > 0 && (
             <BufferArrow
               x1={dayToX(r2Lines.exc.start)}
               x2={dayToX(r2Lines.pipe.start)}
-              y={distToY(0) - 12}
+              y={CHART_HEIGHT - PADDING.bottom + 38}
               label={`${buffer1}d`}
               isOk={buffer1Ok}
-              position="below"
+              position="above"
             />
           )}
 
-          {/* Buffer arrows - Pipe→Back at top: 5d above then <--> */}
+          {/* Buffer arrows - Pipe→Back: above 16k in top padding */}
           {r2Lines.pipe.end > 0 && r2Lines.back.end > 0 && (
             <BufferArrow
               x1={dayToX(r2Lines.pipe.end)}
               x2={dayToX(r2Lines.back.end)}
-              y={distToY(PROJECT_LENGTH) + 25}
+              y={PADDING.top - 20}
               label={`${buffer2}d`}
               isOk={buffer2Ok}
-              position="above"
+              position="below"
             />
           )}
 
