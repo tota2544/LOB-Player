@@ -976,7 +976,7 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
             </g>
           ))}
 
-          {/* Buffer arrows - Exc→Pipe: below x-axis in bottom padding */}
+          {/* Buffer arrows - Exc→Pipe: below x-axis, label BELOW arrow */}
           {r2Lines.exc.start > 0 && r2Lines.pipe.start > 0 && (
             <BufferArrow
               x1={dayToX(r2Lines.exc.start)}
@@ -984,11 +984,11 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
               y={CHART_HEIGHT - PADDING.bottom + 38}
               label={`${buffer1}d`}
               isOk={buffer1Ok}
-              position="above"
+              position="below"
             />
           )}
 
-          {/* Buffer arrows - Pipe→Back: above 16k in top padding */}
+          {/* Buffer arrows - Pipe→Back: above 16k, label ABOVE arrow */}
           {r2Lines.pipe.end > 0 && r2Lines.back.end > 0 && (
             <BufferArrow
               x1={dayToX(r2Lines.pipe.end)}
@@ -996,7 +996,7 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
               y={PADDING.top - 20}
               label={`${buffer2}d`}
               isOk={buffer2Ok}
-              position="below"
+              position="above"
             />
           )}
 
