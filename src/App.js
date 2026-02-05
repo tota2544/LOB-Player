@@ -57,33 +57,56 @@ function DraggableBarChart({ schedule, durations, onScheduleChange }) {
   const dayToPixel = (day) => CHART_PADDING_LEFT + day * PIXELS_PER_DAY;
   const pixelToDay = (pixel) => Math.max(1, Math.min(Math.round((pixel - CHART_PADDING_LEFT) / PIXELS_PER_DAY), MAX_DAY - 20));
 
-  const handleMouseDown = (barType, e) => {
-    e.preventDefault();
+  // Unified drag start for mouse and touch
+  const handleDragStart = (barType, clientX) => {
     const rect = chartRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
+    const posX = clientX - rect.left;
     let currentStart = barType === 'exc' ? schedule.excStart : barType === 'pipe' ? schedule.pipeStart : schedule.backStart;
     if (!currentStart || currentStart < 1) currentStart = 1;
-    setDragOffset(mouseX - dayToPixel(currentStart));
+    setDragOffset(posX - dayToPixel(currentStart));
     setDragging(barType);
   };
 
-  const handleMouseMove = useCallback((e) => {
+  const handleMouseDown = (barType, e) => {
+    e.preventDefault();
+    handleDragStart(barType, e.clientX);
+  };
+
+  const handleTouchStart = (barType, e) => {
+    e.preventDefault();
+    handleDragStart(barType, e.touches[0].clientX);
+  };
+
+  // Unified drag move
+  const handleDragMove = useCallback((clientX) => {
     if (!dragging || !chartRef.current) return;
     const rect = chartRef.current.getBoundingClientRect();
-    const newDay = pixelToDay(e.clientX - rect.left - dragOffset);
+    const newDay = pixelToDay(clientX - rect.left - dragOffset);
     if (dragging === 'exc') onScheduleChange({ ...schedule, excStart: newDay });
     else if (dragging === 'pipe') onScheduleChange({ ...schedule, pipeStart: newDay });
     else if (dragging === 'back') onScheduleChange({ ...schedule, backStart: newDay });
   }, [dragging, dragOffset, schedule, onScheduleChange]);
 
-  const handleMouseUp = useCallback(() => setDragging(null), []);
+  const handleMouseMove = useCallback((e) => handleDragMove(e.clientX), [handleDragMove]);
+  const handleTouchMove = useCallback((e) => { e.preventDefault(); handleDragMove(e.touches[0].clientX); }, [handleDragMove]);
+
+  const handleDragEnd = useCallback(() => setDragging(null), []);
 
   useEffect(() => {
     if (!dragging) return;
+    // Mouse events
     window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    return () => { window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); };
-  }, [dragging, handleMouseMove, handleMouseUp]);
+    window.addEventListener('mouseup', handleDragEnd);
+    // Touch events
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleDragEnd);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleDragEnd);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleDragEnd);
+    };
+  }, [dragging, handleMouseMove, handleTouchMove, handleDragEnd]);
 
   // Only show bars if duration is valid
   const excDur = durations.exc > 0 ? durations.exc : 0;
@@ -109,12 +132,13 @@ function DraggableBarChart({ schedule, durations, onScheduleChange }) {
         <div className="flex items-center gap-2"><div className="w-4 h-4 bg-orange-500 rounded"></div><span>Backfill & Compaction</span></div>
       </div>
 
-      {/* Chart */}
-      <div ref={chartRef} className="relative bg-gray-50 rounded-lg border overflow-hidden" style={{ width: CHART_WIDTH, height: CHART_HEIGHT, margin: '0 auto' }}>
-        {/* Y-axis label */}
-        <div className="absolute text-sm font-medium text-gray-600" style={{ left: 8, top: '50%', transform: 'rotate(-90deg) translateX(-50%)', transformOrigin: 'left center' }}>Activity</div>
+      {/* Chart - scrollable on mobile */}
+      <div className="overflow-x-auto pb-2">
+        <div ref={chartRef} className="relative bg-gray-50 rounded-lg border" style={{ width: CHART_WIDTH, height: CHART_HEIGHT, margin: '0 auto', minWidth: CHART_WIDTH, touchAction: 'pan-x' }}>
+          {/* Y-axis label */}
+          <div className="absolute text-sm font-medium text-gray-600" style={{ left: 8, top: '50%', transform: 'rotate(-90deg) translateX(-50%)', transformOrigin: 'left center' }}>Activity</div>
 
-        {/* Grid lines */}
+          {/* Grid lines */}
         {xTicks.map(day => (
           <div key={`grid-${day}`} className="absolute w-px bg-gray-200" style={{ left: dayToPixel(day), top: 10, bottom: 40 }} />
         ))}
@@ -130,8 +154,9 @@ function DraggableBarChart({ schedule, durations, onScheduleChange }) {
             <div
               key={bar.id}
               className={`absolute ${bar.color} rounded flex items-center justify-center text-white text-xs font-bold shadow ${bar.locked ? 'cursor-not-allowed opacity-80' : 'cursor-grab active:cursor-grabbing hover:shadow-lg'} ${dragging === bar.id ? 'ring-4 ring-yellow-400 shadow-xl z-10' : ''}`}
-              style={{ left: dayToPixel(bar.start), width: Math.max(bar.duration * PIXELS_PER_DAY, 40), height: BAR_HEIGHT, top: index * (BAR_HEIGHT + BAR_GAP) + 20 }}
-              onMouseDown={bar.locked ? undefined : (e) => handleMouseDown(bar.id, e)}>
+              style={{ left: dayToPixel(bar.start), width: Math.max(bar.duration * PIXELS_PER_DAY, 40), height: BAR_HEIGHT, top: index * (BAR_HEIGHT + BAR_GAP) + 20, touchAction: 'none' }}
+              onMouseDown={bar.locked ? undefined : (e) => handleMouseDown(bar.id, e)}
+              onTouchStart={bar.locked ? undefined : (e) => handleTouchStart(bar.id, e)}>
               {bar.locked && <span className="mr-1">🔒</span>}{bar.start} - {bar.start + bar.duration - 1}
             </div>
           ) : (
@@ -151,7 +176,10 @@ function DraggableBarChart({ schedule, durations, onScheduleChange }) {
           ))}
           <div className="absolute text-sm font-medium text-gray-600" style={{ left: '50%', transform: 'translateX(-50%)', bottom: 2 }}>Time (days)</div>
         </div>
+        </div>
       </div>
+      {/* Mobile hint */}
+      <div className="text-center text-xs text-gray-400 mt-1 md:hidden">← Swipe to scroll chart →</div>
     </div>
   );
 }
@@ -817,32 +845,55 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
     return Math.min(Math.round(rate * daysWorked), PROJECT_LENGTH);
   };
 
-  const handleMouseDown = (activity, e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  // Unified drag start for mouse and touch
+  const handleDragStart = (activity, clientX) => {
     const rect = chartRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
+    const posX = clientX - rect.left;
     const currentStart = r2Schedule[activity + 'S'];
-    setDragOffset(mouseX - dayToX(currentStart));
+    setDragOffset(posX - dayToX(currentStart));
     setDragging(activity);
   };
 
-  const handleMouseMove = useCallback((e) => {
+  const handleMouseDown = (activity, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleDragStart(activity, e.clientX);
+  };
+
+  const handleTouchStart = (activity, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleDragStart(activity, e.touches[0].clientX);
+  };
+
+  // Unified drag move
+  const handleDragMove = useCallback((clientX) => {
     if (!dragging || !chartRef.current) return;
     const rect = chartRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const newStart = Math.max(MOB_DAYS + 1, Math.min(xToDay(mouseX - dragOffset), MAX_DAY - 20));
+    const newStart = Math.max(MOB_DAYS + 1, Math.min(xToDay(clientX - rect.left - dragOffset), MAX_DAY - 20));
     onR2Change({ ...r2Schedule, [dragging + 'S']: newStart });
   }, [dragging, dragOffset, r2Schedule, onR2Change]);
 
-  const handleMouseUp = useCallback(() => setDragging(null), []);
+  const handleMouseMove = useCallback((e) => handleDragMove(e.clientX), [handleDragMove]);
+  const handleTouchMove = useCallback((e) => { e.preventDefault(); handleDragMove(e.touches[0].clientX); }, [handleDragMove]);
+
+  const handleDragEnd = useCallback(() => setDragging(null), []);
 
   useEffect(() => {
     if (!dragging) return;
+    // Mouse events
     window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    return () => { window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); };
-  }, [dragging, handleMouseMove, handleMouseUp]);
+    window.addEventListener('mouseup', handleDragEnd);
+    // Touch events
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleDragEnd);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleDragEnd);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleDragEnd);
+    };
+  }, [dragging, handleMouseMove, handleTouchMove, handleDragEnd]);
 
   const handleChartHover = (e) => {
     if (dragging || !chartRef.current) return;
@@ -915,16 +966,16 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
 
   return (
     <div>
-      {/* Chart + Legend side-by-side */}
-      <div className="flex gap-3">
-        {/* SVG Chart (fills remaining space) */}
-        <div className="relative flex-1 min-w-0">
+      {/* Chart + Legend */}
+      <div className="flex flex-col lg:flex-row gap-3">
+        {/* SVG Chart - scrollable on mobile */}
+        <div className="relative flex-1 min-w-0 overflow-x-auto pb-2">
           <svg
             ref={chartRef}
             width={CHART_WIDTH}
             height={CHART_HEIGHT}
             className="bg-white border rounded"
-            style={{ maxWidth: '100%' }}
+            style={{ minWidth: CHART_WIDTH, touchAction: 'pan-x' }}
             onMouseMove={handleChartHover}
             onMouseLeave={() => !dragging && setHover(null)}
           >
@@ -956,25 +1007,28 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
           {/* R2 Lines (solid, draggable) */}
           {['exc', 'pipe', 'back'].map(id => (
             <g key={`r2-${id}`}>
-              {/* Wider invisible hit area for easier dragging */}
+              {/* Wider invisible hit area for easier dragging (mouse + touch) */}
               <polyline
                 points={getLinePoints(r2Lines[id].start, r2Lines[id].end)}
-                fill="none" stroke="transparent" strokeWidth="16"
-                className="cursor-grab"
+                fill="none" stroke="transparent" strokeWidth="30"
+                style={{ cursor: 'grab', touchAction: 'none' }}
                 onMouseDown={(e) => handleMouseDown(id, e)}
+                onTouchStart={(e) => handleTouchStart(id, e)}
               />
               <polyline
                 points={getLinePoints(r2Lines[id].start, r2Lines[id].end)}
                 fill="none" stroke={colors[id].stroke} strokeWidth="3"
-                className={`cursor-grab ${dragging === id ? 'opacity-60' : ''}`}
-                onMouseDown={(e) => handleMouseDown(id, e)}
+                className={`${dragging === id ? 'opacity-60' : ''}`}
+                style={{ cursor: 'grab', touchAction: 'none', pointerEvents: 'none' }}
               />
-              {/* Drag handle */}
+              {/* Drag handle - larger for touch (r=14 instead of 7) */}
               <circle
-                cx={dayToX(r2Lines[id].start)} cy={distToY(0)} r="7"
-                fill={colors[id].stroke} stroke="white" strokeWidth="2"
-                className={`cursor-grab ${dragging === id ? 'opacity-60' : ''}`}
+                cx={dayToX(r2Lines[id].start)} cy={distToY(0)} r="14"
+                fill={colors[id].stroke} stroke="white" strokeWidth="3"
+                className={`${dragging === id ? 'opacity-60' : ''}`}
+                style={{ cursor: 'grab', touchAction: 'none' }}
                 onMouseDown={(e) => handleMouseDown(id, e)}
+                onTouchStart={(e) => handleTouchStart(id, e)}
               />
             </g>
           ))}
@@ -1044,6 +1098,8 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
             ))}
           </div>
         )}
+        {/* Mobile scroll hint */}
+        <div className="text-center text-xs text-gray-400 mt-1 lg:hidden">← Swipe to scroll chart →</div>
         </div>
 
         {/* Legend (right side - desktop) */}
@@ -1066,7 +1122,8 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
       </div>
 
       <p className="text-sm text-gray-500 mt-2 text-center">
-        🖱️ Drag the solid lines or circles to adjust start days
+        <span className="hidden md:inline">🖱️ Drag the solid lines or circles to adjust start days</span>
+        <span className="md:hidden">👆 Touch and drag the circles to adjust start days</span>
       </p>
 
       {/* Compact legend for small screens */}
