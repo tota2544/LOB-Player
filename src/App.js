@@ -589,6 +589,7 @@ function BarChartR1({ schedule }) {
 // Finds crossing points between two LOB lines
 function findConflicts(schedule, durations) {
   const conflicts = [];
+  const rates = { exc: CREWS.exc.rate, pipe: CREWS.pipe.rate, back: CREWS.back.rate };
   const pairs = [
     { a: 'exc', b: 'pipe', aName: 'Excavation', bName: 'Pipe Laying' },
     { a: 'pipe', b: 'back', aName: 'Pipe Laying', bName: 'Backfill' },
@@ -597,16 +598,16 @@ function findConflicts(schedule, durations) {
     const aS = schedule[a + 'S'], aE = schedule[a + 'E'];
     const bS = schedule[b + 'S'], bE = schedule[b + 'E'];
     if (!aS || !bS || aS <= 0 || bS <= 0) return;
-    const aRate = PROJECT_LENGTH / (aE - aS);
-    const bRate = PROJECT_LENGTH / (bE - bS);
+    const aRate = rates[a];
+    const bRate = rates[b];
     // check if b overtakes a at some point
-    // position of a at day d: (d - aS) * aRate, clamped
-    // position of b at day d: (d - bS) * bRate, clamped
+    // position of a at day d: (d - aS + 1) * aRate, clamped
+    // position of b at day d: (d - bS + 1) * bRate, clamped
     const maxEnd = Math.max(aE, bE);
     let prevDiff = null;
     for (let d = Math.min(aS, bS); d <= maxEnd; d++) {
-      const aPos = d < aS ? 0 : d > aE ? PROJECT_LENGTH : (d - aS) * aRate;
-      const bPos = d < bS ? 0 : d > bE ? PROJECT_LENGTH : (d - bS) * bRate;
+      const aPos = d < aS ? 0 : d > aE ? PROJECT_LENGTH : Math.min((d - aS + 1) * aRate, PROJECT_LENGTH);
+      const bPos = d < bS ? 0 : d > bE ? PROJECT_LENGTH : Math.min((d - bS + 1) * bRate, PROJECT_LENGTH);
       const diff = bPos - aPos;
       if (prevDiff !== null && prevDiff <= 0 && diff > 0) {
         // crossing happened between d-1 and d
@@ -619,10 +620,10 @@ function findConflicts(schedule, durations) {
       prevDiff = diff;
     }
     // also check if b is ahead at any point (for same-start)
-    if (bS <= aS && bE < aE) {
-      // b starts same or earlier but is faster — check first day
-      const bPos1 = bS <= aS ? (aS - bS) * bRate : 0;
-      if (bPos1 > 0) {
+    if (bS <= aS) {
+      const bDaysWorked = aS - bS + 1;
+      const bPos1 = bS <= aS ? Math.min(bDaysWorked * bRate, PROJECT_LENGTH) : 0;
+      if (bPos1 > 0 && aS >= bS) {
         conflicts.push({ day: aS, dist: 0, aName, bName, a, b });
       }
     }
@@ -651,16 +652,17 @@ function LOBChartR1({ schedule, durations }) {
     return `${dayToX(start)},${distToY(0)} ${dayToX(end)},${distToY(PROJECT_LENGTH)}`;
   };
 
-  const getDistAtDay = (start, end, day) => {
+  const getDistAtDay = (start, end, day, rate) => {
     if (day < start) return 0;
     if (day > end) return PROJECT_LENGTH;
-    return Math.round(((day - start) / (end - start)) * PROJECT_LENGTH);
+    const daysWorked = day - start + 1;
+    return Math.min(Math.round(rate * daysWorked), PROJECT_LENGTH);
   };
 
   const lines = [
-    { id: 'exc', start: schedule.excS, end: schedule.excE, color: '#2563eb', name: 'Excavation & Bedding' },
-    { id: 'pipe', start: schedule.pipeS, end: schedule.pipeE, color: '#16a34a', name: 'Pipe Laying & Alignment' },
-    { id: 'back', start: schedule.backS, end: schedule.backE, color: '#ea580c', name: 'Backfill & Compaction' },
+    { id: 'exc', start: schedule.excS, end: schedule.excE, color: '#2563eb', name: 'Excavation & Bedding', rate: CREWS.exc.rate },
+    { id: 'pipe', start: schedule.pipeS, end: schedule.pipeE, color: '#16a34a', name: 'Pipe Laying & Alignment', rate: CREWS.pipe.rate },
+    { id: 'back', start: schedule.backS, end: schedule.backE, color: '#ea580c', name: 'Backfill & Compaction', rate: CREWS.back.rate },
   ];
 
   const conflicts = findConflicts(schedule, durations);
@@ -755,7 +757,7 @@ function LOBChartR1({ schedule, durations }) {
           {lines.map(l => (
             <div key={l.id} className="flex justify-between gap-3" style={{ color: l.color }}>
               <span>{l.name.split(' ')[0]}:</span>
-              <span className="font-mono">{getDistAtDay(l.start, l.end, hover.day).toLocaleString()} ft</span>
+              <span className="font-mono">{getDistAtDay(l.start, l.end, hover.day, l.rate).toLocaleString()} ft</span>
             </div>
           ))}
         </div>
@@ -807,11 +809,12 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
     return `${dayToX(start)},${distToY(0)} ${dayToX(end)},${distToY(PROJECT_LENGTH)}`;
   };
 
-  const getDistAtDay = (start, end, day) => {
+  const getDistAtDay = (start, end, day, rate) => {
     if (!start || !end || start <= 0) return 0;
     if (day < start) return 0;
     if (day > end) return PROJECT_LENGTH;
-    return Math.round(((day - start) / (end - start)) * PROJECT_LENGTH);
+    const daysWorked = day - start + 1;
+    return Math.min(Math.round(rate * daysWorked), PROJECT_LENGTH);
   };
 
   const handleMouseDown = (activity, e) => {
@@ -866,9 +869,9 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
   };
 
   const colors = {
-    exc: { stroke: '#2563eb', name: 'Excavation & Bedding' },
-    pipe: { stroke: '#16a34a', name: 'Pipe Laying & Alignment' },
-    back: { stroke: '#ea580c', name: 'Backfill & Compaction' },
+    exc: { stroke: '#2563eb', name: 'Excavation & Bedding', rate: CREWS.exc.rate },
+    pipe: { stroke: '#16a34a', name: 'Pipe Laying & Alignment', rate: CREWS.pipe.rate },
+    back: { stroke: '#ea580c', name: 'Backfill & Compaction', rate: CREWS.back.rate },
   };
 
   // Conflict detection on R2 lines
@@ -1036,7 +1039,7 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
             {['exc', 'pipe', 'back'].map(id => (
               <div key={id} className="flex justify-between gap-4" style={{ color: colors[id].stroke }}>
                 <span>{colors[id].name.split(' & ')[0]}:</span>
-                <span className="font-mono">{getDistAtDay(r2Lines[id].start, r2Lines[id].end, hover.day).toLocaleString()} ft</span>
+                <span className="font-mono">{getDistAtDay(r2Lines[id].start, r2Lines[id].end, hover.day, colors[id].rate).toLocaleString()} ft</span>
               </div>
             ))}
           </div>
@@ -1092,7 +1095,7 @@ export default function LOBGame() {
   // R2 state - draggable LOB design
   const [r2Schedule, setR2Schedule] = useState(null);
   const [r2Validated, setR2Validated] = useState(false);
-  const [r2FlashCards, setR2FlashCards] = useState({ whyProblem: false, whyMatter: false, whatIsLOB: false, howToFix: false, assumptions: false, howToRevise: false });
+  const [r2FlashCards, setR2FlashCards] = useState({ whyProblem: false, whyMatter: false, whatIsLOB: false, howToFix: false, distanceCalc: false, assumptions: false, howToRevise: false });
 
   // Initialize R2 schedule from R1 when entering round 2
   useEffect(() => {
