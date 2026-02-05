@@ -1546,16 +1546,20 @@ export default function LOBGame() {
   // FINAL SCREEN (kept; fixed template strings)
   if (round === 6) {
     const pass = results[5]?.pass;
+    const r2BaseCost = r2Cost.total; // Same cost for R1-R3
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 p-4">
-        <div className="max-w-4xl mx-auto bg-white rounded-xl p-6">
-          <div className="text-center mb-6">
+        <div className="max-w-4xl mx-auto bg-white rounded-xl p-6 space-y-6">
+          {/* Header */}
+          <div className="text-center">
             <div className="text-6xl">{pass ? '🏆' : '📊'}</div>
             <h1 className="text-3xl font-bold text-blue-900">Game Complete!</h1>
             <p className="text-gray-600">Great job, {name}!</p>
           </div>
 
-          <div className={`p-4 rounded-lg mb-6 ${pass ? 'bg-green-100 border-2 border-green-500' : 'bg-yellow-100 border-2 border-yellow-500'}`}>
+          {/* Final Result */}
+          <div className={`p-4 rounded-lg ${pass ? 'bg-green-100 border-2 border-green-500' : 'bg-yellow-100 border-2 border-yellow-500'}`}>
             <h3 className="font-bold text-lg">{pass ? '✅ Constraints Met!' : '⚠️ Constraints Not Met'}</h3>
             <div className="grid grid-cols-2 gap-4 mt-2">
               <div>
@@ -1563,19 +1567,94 @@ export default function LOBGame() {
                 <span className={`font-bold ${results[5]?.end <= TARGET_DAYS ? 'text-green-600' : 'text-red-600'}`}>
                   {results[5]?.end} days
                 </span>{' '}
-                <span className="text-gray-400">(limit: ≤{TARGET_DAYS})</span>
+                <span className="text-gray-400">(target: ≤{TARGET_DAYS})</span>
               </div>
               <div>
                 Cost:{' '}
                 <span className={`font-bold ${results[5]?.cost <= TARGET_COST ? 'text-green-600' : 'text-red-600'}`}>
                   ${results[5]?.cost?.toLocaleString()}
                 </span>{' '}
-                <span className="text-gray-400">(limit: ≤${TARGET_COST.toLocaleString()})</span>
+                <span className="text-gray-400">(target: ≤${TARGET_COST.toLocaleString()})</span>
               </div>
             </div>
           </div>
 
-          <button onClick={() => window.location.reload()} className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold">
+          {/* Results Table */}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h3 className="font-bold text-lg mb-3">📊 Your Results by Round</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-blue-100">
+                    <th className="px-3 py-2 border text-left">Round</th>
+                    <th className="px-3 py-2 border text-left">Description</th>
+                    <th className="px-3 py-2 border text-center">Duration</th>
+                    <th className="px-3 py-2 border text-center">Cost</th>
+                    <th className="px-3 py-2 border text-center">Buffer</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-white">
+                    <td className="px-3 py-2 border font-bold text-blue-600">R1</td>
+                    <td className="px-3 py-2 border">Bar Chart</td>
+                    <td className="px-3 py-2 border text-center">{results[1]?.end || '-'} days</td>
+                    <td className="px-3 py-2 border text-center">${r2BaseCost.toLocaleString()}</td>
+                    <td className="px-3 py-2 border text-center text-gray-400">-</td>
+                  </tr>
+                  <tr className="bg-gray-50">
+                    <td className="px-3 py-2 border font-bold text-blue-600">R2</td>
+                    <td className="px-3 py-2 border">LOB Analysis</td>
+                    <td className="px-3 py-2 border text-center">{results[2]?.end || '-'} days</td>
+                    <td className="px-3 py-2 border text-center">${r2BaseCost.toLocaleString()}</td>
+                    <td className="px-3 py-2 border text-center">{DEFAULT_BUFFER} days</td>
+                  </tr>
+                  <tr className="bg-white">
+                    <td className="px-3 py-2 border font-bold text-blue-600">R3</td>
+                    <td className="px-3 py-2 border">Buffer Analysis</td>
+                    <td className="px-3 py-2 border text-center">{results[3]?.end || '-'} days</td>
+                    <td className="px-3 py-2 border text-center">${r2BaseCost.toLocaleString()}</td>
+                    <td className="px-3 py-2 border text-center">{results[3]?.buffer || '-'} days</td>
+                  </tr>
+                  <tr className="bg-gray-50">
+                    <td className="px-3 py-2 border font-bold text-orange-600">R4</td>
+                    <td className="px-3 py-2 border">Rate Analysis</td>
+                    <td className="px-3 py-2 border text-center">{results[4]?.end || '-'} days</td>
+                    <td className="px-3 py-2 border text-center">${results[4]?.cost?.toLocaleString() || '-'}</td>
+                    <td className="px-3 py-2 border text-center">{DEFAULT_BUFFER} days</td>
+                  </tr>
+                  <tr className={`${pass ? 'bg-green-50' : 'bg-yellow-50'}`}>
+                    <td className="px-3 py-2 border font-bold text-purple-600">R5</td>
+                    <td className="px-3 py-2 border">Optimization</td>
+                    <td className={`px-3 py-2 border text-center font-bold ${results[5]?.end <= TARGET_DAYS ? 'text-green-600' : 'text-red-600'}`}>
+                      {results[5]?.end || '-'} days {results[5]?.end <= TARGET_DAYS ? '✅' : '❌'}
+                    </td>
+                    <td className={`px-3 py-2 border text-center font-bold ${results[5]?.cost <= TARGET_COST ? 'text-green-600' : 'text-red-600'}`}>
+                      ${results[5]?.cost?.toLocaleString() || '-'} {results[5]?.cost <= TARGET_COST ? '✅' : '❌'}
+                    </td>
+                    <td className="px-3 py-2 border text-center">{results[5]?.buffer || '-'} days</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              💡 Notice: R1-R3 have the <strong>same cost</strong> because only buffer/timing changed, not equipment.
+              R4-R5 costs differ because equipment changed.
+            </p>
+          </div>
+
+          {/* What You Learned */}
+          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+            <h3 className="font-bold text-yellow-800">📚 What You Learned</h3>
+            <ul className="mt-2 text-sm text-yellow-900 space-y-1">
+              <li><strong>R1-R2:</strong> LOB visualizes crew progress & helps identify conflicts</li>
+              <li><strong>R3:</strong> Buffer ↑ → Duration ↑, but Cost stays the <strong>same</strong></li>
+              <li><strong>R4:</strong> Rate ↑ → Duration ↓, Cost may ↑ or ↓</li>
+              <li><strong>R5:</strong> Balance equipment + buffer to meet <strong>both</strong> constraints</li>
+            </ul>
+          </div>
+
+          {/* Play Again */}
+          <button onClick={() => window.location.reload()} className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700">
             🔄 Play Again
           </button>
         </div>
@@ -1963,7 +2042,15 @@ export default function LOBGame() {
 
         {/* R4: Rate Analysis */}
         {round === 4 && (<>
-          <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded"><h3 className="font-bold">📋 R4: Rate Analysis</h3><p className="text-sm">Select equipment type (1 unit each).</p></div>
+          <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded">
+            <h3 className="font-bold text-lg">📋 R4: Rate Analysis</h3>
+            <p className="text-sm text-gray-700 mt-2">Select different equipment for each crew and observe:</p>
+            <ul className="text-sm text-gray-700 mt-1 ml-4 list-disc">
+              <li>How does the <strong>production rate</strong> affect duration?</li>
+              <li>How does <strong>equipment choice</strong> affect total cost?</li>
+              <li>Notice how the <strong>LOB line slopes</strong> change</li>
+            </ul>
+          </div>
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-3">Equipment Selection</h3>
             <div className="grid grid-cols-3 gap-4">
@@ -1991,12 +2078,36 @@ export default function LOBGame() {
             <h3 className="font-bold mb-2">💰 R4 Budget</h3>
             <BudgetTable cost={r4Cost} durExc={r4.excDur} durPipe={r4.pipeDur} durBack={r4.backDur} costExc={r4.excCost} costPipe={r4.pipeCost} costBack={r4.backCost} />
           </div>
+          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+            <h4 className="font-bold text-yellow-800">💡 Key Insight</h4>
+            <div className="mt-2 text-sm text-yellow-900 space-y-1">
+              <p>Rate ↑ → Duration ↓ (faster crews finish sooner)</p>
+              <p>Rate ↑ → Cost may ↑ or ↓ (depends on the trade-off)</p>
+            </div>
+            <p className="mt-3 text-sm text-yellow-800">
+              Why? Faster equipment costs more per day, but works fewer days.<br/>
+              Total Cost = Daily Cost × Duration<br/>
+              <strong>The cheapest option is not always the slowest!</strong>
+            </p>
+          </div>
           <button onClick={nextRound} className="w-full bg-green-600 text-white py-3 rounded-lg font-bold">Complete R4 → R5</button>
         </>)}
 
         {/* R5: Optimize for Constraints */}
         {round === 5 && (<>
-          <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded"><h3 className="font-bold">📋 R5: Optimization</h3><p className="text-sm">Meet constraints: ≤{TARGET_DAYS} days and ≤${TARGET_COST.toLocaleString()}</p></div>
+          <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded">
+            <h3 className="font-bold text-lg">📋 R5: Optimization Challenge</h3>
+            <p className="text-sm text-gray-700 mt-2">Apply what you learned in R3 and R4 to meet <strong>BOTH</strong> constraints:</p>
+            <ul className="text-sm text-gray-700 mt-1 ml-4 list-disc">
+              <li>Duration: <strong>≤{TARGET_DAYS} days</strong></li>
+              <li>Cost: <strong>≤${TARGET_COST.toLocaleString()}</strong></li>
+            </ul>
+            <p className="text-sm text-gray-700 mt-2">You can adjust:</p>
+            <ul className="text-sm text-gray-700 mt-1 ml-4 list-disc">
+              <li>Equipment quantity (more units = faster rate)</li>
+              <li>Buffer size (smaller buffer = shorter duration)</li>
+            </ul>
+          </div>
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-3">Equipment Configuration (Multiple Units)</h3>
             <div className="grid grid-cols-3 gap-4">
@@ -2059,6 +2170,17 @@ export default function LOBGame() {
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-2">💰 R5 Budget</h3>
             <BudgetTable cost={r5Cost} durExc={r5.excDur} durPipe={r5.pipeDur} durBack={r5.backDur} costExc={r5.excCost} costPipe={r5.pipeCost} costBack={r5.backCost} />
+          </div>
+          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+            <h4 className="font-bold text-yellow-800">💡 Key Insight</h4>
+            <p className="text-sm text-yellow-900 mt-2">This is the real-world trade-off:</p>
+            <div className="mt-2 text-sm text-yellow-900 space-y-1">
+              <p>• More equipment → Faster (duration ↓) but costs more (cost ↑)</p>
+              <p>• Smaller buffer → Faster (duration ↓) but riskier</p>
+            </div>
+            <p className="mt-3 text-sm text-yellow-800">
+              <strong>Find the balance that meets BOTH constraints!</strong>
+            </p>
           </div>
           <button onClick={nextRound} className="w-full bg-purple-600 text-white py-3 rounded-lg font-bold">Finish Game 🏆</button>
         </>)}
