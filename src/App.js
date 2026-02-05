@@ -1257,6 +1257,7 @@ export default function LOBGame() {
   const genLOB = (schedules) => {
     const data = [];
     const maxDay = Math.max(...schedules.map(s => s.end || 0), 100) + 10;
+    const rates = { exc: CREWS.exc.rate, pipe: CREWS.pipe.rate, back: CREWS.back.rate };
 
     for (let d = 0; d <= maxDay; d += 2) {
       const pt = { day: d };
@@ -1264,7 +1265,10 @@ export default function LOBGame() {
         ['exc', 'pipe', 'back'].forEach(type => {
           const start = s[type + 'S'], end = s[type + 'E'];
           if (start > 0 && end > 0) {
-            pt[type + i] = d < start ? 0 : d > end ? PROJECT_LENGTH : ((d - start) / (end - start)) * PROJECT_LENGTH;
+            // Use rate from schedule if available (R4/R5 may have different rates), otherwise use default
+            const rate = s[type + 'Rate'] || rates[type];
+            const daysWorked = d - start + 1;
+            pt[type + i] = d < start ? 0 : d > end ? PROJECT_LENGTH : Math.min(rate * daysWorked, PROJECT_LENGTH);
           }
         });
       });
