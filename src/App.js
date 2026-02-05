@@ -890,23 +890,27 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
   const xTicks = [0, 20, 40, 60, 80, 100, 120, 140];
   const yTicks = [0, 4000, 8000, 12000, 16000];
 
-  // Buffer arrow helper: draws a double-headed arrow between two x positions at a given y
-  const BufferArrow = ({ x1, x2, y, label, isOk }) => {
+  // Buffer arrow helper: draws a double-headed arrow with label above or below
+  // position: 'above' puts label above arrow, 'below' puts label below arrow
+  const BufferArrow = ({ x1, x2, y, label, isOk, position = 'above' }) => {
     const color = isOk ? '#16a34a' : '#ef4444';
     const midX = (x1 + x2) / 2;
-    const arrowSize = 6;
+    const arrowSize = 7;
     const width = Math.abs(x2 - x1);
     if (width < 3) return null;
+    const labelY = position === 'above' ? y - 8 : y + 22;
+    const rectY = position === 'above' ? y - 24 : y + 8;
     return (
       <g>
-        <line x1={x1} y1={y} x2={x2} y2={y} stroke={color} strokeWidth="2.5" />
+        {/* Arrow line */}
+        <line x1={x1 + arrowSize} y1={y} x2={x2 - arrowSize} y2={y} stroke={color} strokeWidth="2.5" />
         {/* Left arrowhead */}
-        <polygon points={`${x1},${y} ${x1 + arrowSize},${y - arrowSize} ${x1 + arrowSize},${y + arrowSize}`} fill={color} />
+        <polygon points={`${x1},${y} ${x1 + arrowSize + 2},${y - arrowSize} ${x1 + arrowSize + 2},${y + arrowSize}`} fill={color} />
         {/* Right arrowhead */}
-        <polygon points={`${x2},${y} ${x2 - arrowSize},${y - arrowSize} ${x2 - arrowSize},${y + arrowSize}`} fill={color} />
+        <polygon points={`${x2},${y} ${x2 - arrowSize - 2},${y - arrowSize} ${x2 - arrowSize - 2},${y + arrowSize}`} fill={color} />
         {/* Label background */}
-        <rect x={midX - 20} y={y - 22} width="40" height="18" rx="4" fill={isOk ? '#dcfce7' : '#fee2e2'} stroke={color} strokeWidth="1" />
-        <text x={midX} y={y - 10} textAnchor="middle" fontSize="11" fill={color} fontWeight="bold">{label}</text>
+        <rect x={midX - 18} y={rectY} width="36" height="18" rx="4" fill={isOk ? '#dcfce7' : '#fee2e2'} stroke={color} strokeWidth="1" />
+        <text x={midX} y={labelY} textAnchor="middle" fontSize="12" fill={color} fontWeight="bold">{label}</text>
       </g>
     );
   };
@@ -977,25 +981,27 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
             </g>
           ))}
 
-          {/* Buffer arrows - Exc→Pipe at bottom (inside plot, above 0k) */}
+          {/* Buffer arrows - Exc→Pipe at bottom: <--> then 5d below */}
           {r2Lines.exc.start > 0 && r2Lines.pipe.start > 0 && (
             <BufferArrow
               x1={dayToX(r2Lines.exc.start)}
               x2={dayToX(r2Lines.pipe.start)}
-              y={distToY(0) - 15}
+              y={distToY(0) - 12}
               label={`${buffer1}d`}
               isOk={buffer1Ok}
+              position="below"
             />
           )}
 
-          {/* Buffer arrows - Pipe→Back at top (inside plot, below 16k) */}
+          {/* Buffer arrows - Pipe→Back at top: 5d above then <--> */}
           {r2Lines.pipe.end > 0 && r2Lines.back.end > 0 && (
             <BufferArrow
               x1={dayToX(r2Lines.pipe.end)}
               x2={dayToX(r2Lines.back.end)}
-              y={distToY(PROJECT_LENGTH) + 20}
+              y={distToY(PROJECT_LENGTH) + 25}
               label={`${buffer2}d`}
               isOk={buffer2Ok}
+              position="above"
             />
           )}
 
