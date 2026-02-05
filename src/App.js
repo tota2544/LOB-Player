@@ -1919,7 +1919,14 @@ export default function LOBGame() {
 
         {/* R3: Buffer Analysis */}
         {round === 3 && (<>
-          <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded"><h3 className="font-bold">📋 R3: Buffer Analysis</h3><p className="text-sm">See how buffer affects duration.</p></div>
+          <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+            <h3 className="font-bold text-lg">📋 R3: Buffer Analysis</h3>
+            <p className="text-sm text-gray-700 mt-2">Adjust the buffer slider and observe:</p>
+            <ul className="text-sm text-gray-700 mt-1 ml-4 list-disc">
+              <li>How does the <strong>project duration</strong> change?</li>
+              <li>Does the <strong>total cost</strong> change?</li>
+            </ul>
+          </div>
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center gap-4"><span className="font-bold">Buffer:</span><input type="range" min="1" max="15" value={r3Buffer} onChange={e => setR3Buffer(+e.target.value)} className="flex-1" /><span className="text-3xl font-bold text-green-600 w-16 text-center">{r3Buffer}</span><span>days</span></div>
           </div>
@@ -1940,7 +1947,17 @@ export default function LOBGame() {
             <h3 className="font-bold mb-2">LOB Comparison: R2 (dashed) vs R3 (solid)</h3>
             <ResponsiveContainer width="100%" height={280}><LineChart data={genLOB([r2Correct, r3])} margin={{ top: 10, right: 30, bottom: 30, left: 60 }}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="day" label={{ value: 'Duration (day)', position: 'insideBottom', offset: -5 }} /><YAxis domain={[0, PROJECT_LENGTH]} tickFormatter={v => (v/1000).toFixed(0)+'k'} label={{ value: 'Distance (ft)', angle: -90, position: 'insideLeft', offset: 10 }} /><Tooltip /><Legend verticalAlign="top" height={36} /><Line type="linear" dataKey="exc0" stroke="#2563eb" strokeWidth={1} strokeDasharray="5 5" name="Exc R2" dot={false} /><Line type="linear" dataKey="pipe0" stroke="#16a34a" strokeWidth={1} strokeDasharray="5 5" name="Pipe R2" dot={false} /><Line type="linear" dataKey="back0" stroke="#ea580c" strokeWidth={1} strokeDasharray="5 5" name="Back R2" dot={false} /><Line type="linear" dataKey="exc1" stroke="#2563eb" strokeWidth={3} name="Exc R3" dot={false} /><Line type="linear" dataKey="pipe1" stroke="#16a34a" strokeWidth={3} name="Pipe R3" dot={false} /><Line type="linear" dataKey="back1" stroke="#ea580c" strokeWidth={3} name="Back R3" dot={false} /></LineChart></ResponsiveContainer>
           </div>
-          <div className="bg-yellow-50 p-4 rounded"><strong>💡 Key Insight:</strong> Buffer ↑ = Duration ↑, but Cost stays the same!</div>
+          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+            <h4 className="font-bold text-yellow-800">💡 Key Insight</h4>
+            <div className="mt-2 text-sm text-yellow-900 space-y-1">
+              <p>Buffer ↑ → Duration ↑</p>
+              <p>Buffer ↑ → Cost stays the <strong>SAME</strong></p>
+            </div>
+            <p className="mt-3 text-sm text-yellow-800">
+              Why? Buffer only shifts <em>when</em> crews work, not <em>how long</em> they work.<br/>
+              Same crew days = Same cost.
+            </p>
+          </div>
           <button onClick={nextRound} className="w-full bg-green-600 text-white py-3 rounded-lg font-bold">Complete R3 → R4</button>
         </>)}
 
