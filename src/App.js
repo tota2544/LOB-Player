@@ -1174,6 +1174,203 @@ export default function LOBGame() {
   const [r5Buffer, setR5Buffer] = useState(5);
   const [results, setResults] = useState({});
 
+  // ==================== DATA LOGGING SYSTEM ====================
+  // This tracks all student interactions for research data collection
+  const [gameLog, setGameLog] = useState({
+    sessionId: `session_${Date.now()}`,
+    startTime: null,
+    endTime: null,
+    studentName: '',
+    rounds: {
+      1: { startTime: null, endTime: null, timeSpent: 0, attempts: {}, values: {}, completed: false },
+      2: { startTime: null, endTime: null, timeSpent: 0, attempts: {}, values: {}, completed: false },
+      3: { startTime: null, endTime: null, timeSpent: 0, attempts: {}, values: {}, completed: false },
+      4: { startTime: null, endTime: null, timeSpent: 0, attempts: {}, values: {}, completed: false },
+      5: { startTime: null, endTime: null, timeSpent: 0, attempts: {}, values: {}, completed: false },
+    },
+    events: [], // Detailed event log
+  });
+
+  // Helper function to log events with timestamps
+  const logEvent = useCallback((eventType, eventData) => {
+    const timestamp = new Date().toISOString();
+    setGameLog(prev => ({
+      ...prev,
+      events: [...prev.events, { timestamp, eventType, ...eventData }]
+    }));
+  }, []);
+
+  // Track round entry/exit times
+  useEffect(() => {
+    if (round >= 1 && round <= 5) {
+      const now = new Date().toISOString();
+      setGameLog(prev => ({
+        ...prev,
+        rounds: {
+          ...prev.rounds,
+          [round]: { ...prev.rounds[round], startTime: now }
+        }
+      }));
+      logEvent('ROUND_START', { round });
+    }
+  }, [round, logEvent]);
+
+  // Helper to update round data
+  const updateRoundLog = useCallback((roundNum, updates) => {
+    setGameLog(prev => ({
+      ...prev,
+      rounds: {
+        ...prev.rounds,
+        [roundNum]: { ...prev.rounds[roundNum], ...updates }
+      }
+    }));
+  }, []);
+
+  // Helper to increment attempt counter for a specific action
+  const incrementAttempt = useCallback((roundNum, attemptKey) => {
+    setGameLog(prev => {
+      const currentAttempts = prev.rounds[roundNum]?.attempts[attemptKey] || 0;
+      return {
+        ...prev,
+        rounds: {
+          ...prev.rounds,
+          [roundNum]: {
+            ...prev.rounds[roundNum],
+            attempts: {
+              ...prev.rounds[roundNum].attempts,
+              [attemptKey]: currentAttempts + 1
+            }
+          }
+        }
+      };
+    });
+  }, []);
+
+  // Helper to log value changes
+  const logValueChange = useCallback((roundNum, valueKey, value) => {
+    setGameLog(prev => ({
+      ...prev,
+      rounds: {
+        ...prev.rounds,
+        [roundNum]: {
+          ...prev.rounds[roundNum],
+          values: {
+            ...prev.rounds[roundNum].values,
+            [valueKey]: value
+          }
+        }
+      }
+    }));
+    logEvent('VALUE_CHANGE', { round: roundNum, key: valueKey, value });
+  }, [logEvent]);
+
+  // Function to complete a round and calculate time spent
+  const completeRound = useCallback((roundNum, finalValues = {}) => {
+    const now = new Date().toISOString();
+    setGameLog(prev => {
+      const roundData = prev.rounds[roundNum];
+      const startTime = roundData?.startTime ? new Date(roundData.startTime) : new Date();
+      const timeSpent = Math.round((new Date(now) - startTime) / 1000); // seconds
+      
+      return {
+        ...prev,
+        rounds: {
+          ...prev.rounds,
+          [roundNum]: {
+            ...roundData,
+            endTime: now,
+            timeSpent,
+            completed: true,
+            values: { ...roundData.values, ...finalValues }
+          }
+        }
+      };
+    });
+    logEvent('ROUND_COMPLETE', { round: roundNum, finalValues });
+  }, [logEvent]);
+
+  // Generate export data
+  const generateExportData = useCallback(() => {
+    const now = new Date().toISOString();
+    return {
+      ...gameLog,
+      endTime: now,
+      exportedAt: now,
+      summary: {
+        totalTimeMinutes: Object.values(gameLog.rounds).reduce((sum, r) => sum + (r.timeSpent || 0), 0) / 60,
+        roundsCompleted: Object.values(gameLog.rounds).filter(r => r.completed).length,
+        finalResult: results[5] || null
+      }
+    };
+  }, [gameLog, results]);
+
+  // Download data as JSON
+  const downloadGameData = useCallback(() => {
+    const data = generateExportData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `LOB_Game_${gameLog.studentName || 'student'}_${gameLog.sessionId}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [generateExportData, gameLog.studentName, gameLog.sessionId]);
+
+  // Download data as CSV (flattened)
+  const downloadGameDataCSV = useCallback(() => {
+    const data = generateExportData();
+    
+    // Create CSV rows
+    const rows = [
+      ['Field', 'Value'],
+      ['Session ID', data.sessionId],
+      ['Student Name', data.studentName],
+      ['Start Time', data.startTime],
+      ['End Time', data.endTime],
+      ['Total Time (minutes)', data.summary.totalTimeMinutes.toFixed(2)],
+      ['Rounds Completed', data.summary.roundsCompleted],
+      [''],
+      ['Round', 'Start Time', 'End Time', 'Time Spent (sec)', 'Completed', 'Attempts', 'Values'],
+    ];
+    
+    for (let r = 1; r <= 5; r++) {
+      const rd = data.rounds[r];
+      rows.push([
+        `Round ${r}`,
+        rd.startTime || '',
+        rd.endTime || '',
+        rd.timeSpent || 0,
+        rd.completed ? 'Yes' : 'No',
+        JSON.stringify(rd.attempts),
+        JSON.stringify(rd.values)
+      ]);
+    }
+    
+    // Add final results
+    if (data.summary.finalResult) {
+      rows.push(['']);
+      rows.push(['Final Results']);
+      rows.push(['Duration (days)', data.summary.finalResult.end]);
+      rows.push(['Cost ($)', data.summary.finalResult.cost]);
+      rows.push(['Buffer (days)', data.summary.finalResult.buffer]);
+      rows.push(['Passed', data.summary.finalResult.pass ? 'Yes' : 'No']);
+    }
+    
+    const csvContent = rows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `LOB_Game_${gameLog.studentName || 'student'}_${gameLog.sessionId}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [generateExportData, gameLog.studentName, gameLog.sessionId]);
+  // ==================== END DATA LOGGING SYSTEM ====================
+
   const dur = useMemo(() => ({
     exc: Math.ceil(PROJECT_LENGTH / CREWS.exc.rate),
     pipe: Math.ceil(PROJECT_LENGTH / CREWS.pipe.rate),
@@ -1336,11 +1533,69 @@ export default function LOBGame() {
 
   const nextRound = () => {
     const res = { round };
-    if (round === 1) Object.assign(res, { ...r1Student });
-    if (round === 2) Object.assign(res, { ...r2Student, cost: r2Cost.total });
-    if (round === 3) Object.assign(res, { ...r3, buffer: r3Buffer });
-    if (round === 4) Object.assign(res, { end: r4.end, cost: r4Cost.total });
-    if (round === 5) Object.assign(res, { end: r5.end, cost: r5Cost.total, buffer: r5Buffer, pass: r5.end <= TARGET_DAYS && r5Cost.total <= TARGET_COST });
+    
+    // Prepare round-specific data for logging
+    let roundValues = {};
+    
+    if (round === 1) {
+      Object.assign(res, { ...r1Student });
+      roundValues = {
+        excStart: r1Student.excS,
+        excEnd: r1Student.excE,
+        pipeStart: r1Student.pipeS,
+        pipeEnd: r1Student.pipeE,
+        backStart: r1Student.backS,
+        backEnd: r1Student.backE,
+        projectEnd: r1Student.end
+      };
+    }
+    if (round === 2) {
+      Object.assign(res, { ...r2Student, cost: r2Cost.total });
+      roundValues = {
+        excStart: r2Student.excS,
+        pipeStart: r2Student.pipeS,
+        backStart: r2Student.backS,
+        projectEnd: r2Student.end,
+        cost: r2Cost.total,
+        buffer: DEFAULT_BUFFER
+      };
+    }
+    if (round === 3) {
+      Object.assign(res, { ...r3, buffer: r3Buffer });
+      roundValues = {
+        buffer: r3Buffer,
+        projectEnd: r3.end,
+        cost: r2Cost.total // Same as R2
+      };
+    }
+    if (round === 4) {
+      Object.assign(res, { end: r4.end, cost: r4Cost.total });
+      roundValues = {
+        excEquipment: r4.excName,
+        pipeEquipment: r4.pipeName,
+        backEquipment: r4.backName,
+        projectEnd: r4.end,
+        cost: r4Cost.total
+      };
+    }
+    if (round === 5) {
+      const passed = r5.end <= TARGET_DAYS && r5Cost.total <= TARGET_COST;
+      Object.assign(res, { end: r5.end, cost: r5Cost.total, buffer: r5Buffer, pass: passed });
+      roundValues = {
+        buffer: r5Buffer,
+        excConfig: r5Config.exc,
+        pipeConfig: r5Config.pipe,
+        backConfig: r5Config.back,
+        projectEnd: r5.end,
+        cost: r5Cost.total,
+        passed: passed,
+        metDurationTarget: r5.end <= TARGET_DAYS,
+        metCostTarget: r5Cost.total <= TARGET_COST
+      };
+    }
+
+    // Log round completion with all data
+    completeRound(round, roundValues);
 
     setResults(p => ({ ...p, [round]: res }));
     setRound(round + 1);
@@ -1531,7 +1786,19 @@ export default function LOBGame() {
               className="w-full px-4 py-3 border-2 rounded-lg mb-4 text-lg"
             />
             <button
-              onClick={() => name && setRound(1)}
+              onClick={() => {
+                if (name) {
+                  // Initialize logging with student name and start time
+                  const startTime = new Date().toISOString();
+                  setGameLog(prev => ({
+                    ...prev,
+                    startTime,
+                    studentName: name,
+                  }));
+                  logEvent('GAME_START', { studentName: name });
+                  setRound(1);
+                }
+              }}
               disabled={!name}
               className="w-full bg-blue-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-blue-700 disabled:bg-gray-300"
             >
@@ -1651,6 +1918,31 @@ export default function LOBGame() {
               <li><strong>R4:</strong> Rate ↑ → Duration ↓, Cost may ↑ or ↓</li>
               <li><strong>R5:</strong> Balance equipment + buffer to meet <strong>both</strong> constraints</li>
             </ul>
+          </div>
+
+          {/* Data Export for Research */}
+          <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded">
+            <h3 className="font-bold text-purple-800">📤 Export Your Game Data</h3>
+            <p className="text-sm text-purple-700 mt-1 mb-3">
+              Please download your game data and submit it to your instructor for research purposes.
+            </p>
+            <div className="flex gap-3 flex-wrap">
+              <button 
+                onClick={downloadGameDataCSV}
+                className="px-4 py-2 bg-purple-600 text-white rounded font-bold hover:bg-purple-700 flex items-center gap-2"
+              >
+                📊 Download CSV
+              </button>
+              <button 
+                onClick={downloadGameData}
+                className="px-4 py-2 bg-purple-500 text-white rounded font-bold hover:bg-purple-600 flex items-center gap-2"
+              >
+                📁 Download JSON (detailed)
+              </button>
+            </div>
+            <p className="text-xs text-purple-600 mt-2">
+              Your data includes: time spent per round, attempts made, values entered, and final results.
+            </p>
           </div>
 
           {/* Play Again */}
@@ -2007,7 +2299,7 @@ export default function LOBGame() {
             </ul>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center gap-4"><span className="font-bold">Buffer:</span><input type="range" min="1" max="15" value={r3Buffer} onChange={e => setR3Buffer(+e.target.value)} className="flex-1" /><span className="text-3xl font-bold text-green-600 w-16 text-center">{r3Buffer}</span><span>days</span></div>
+            <div className="flex items-center gap-4"><span className="font-bold">Buffer:</span><input type="range" min="1" max="15" value={r3Buffer} onChange={e => { const newVal = +e.target.value; setR3Buffer(newVal); logValueChange(3, 'buffer', newVal); }} className="flex-1" /><span className="text-3xl font-bold text-green-600 w-16 text-center">{r3Buffer}</span><span>days</span></div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-2">Schedule (Buffer = {r3Buffer} days)</h3>
@@ -2054,7 +2346,7 @@ export default function LOBGame() {
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-3">Equipment Selection</h3>
             <div className="grid grid-cols-3 gap-4">
-              {['exc', 'pipe', 'back'].map((type) => (<div key={type} className="border rounded p-3"><h4 className={`font-bold mb-2 ${type === 'exc' ? 'text-blue-700' : type === 'pipe' ? 'text-green-700' : 'text-orange-700'}`}>{type === 'exc' ? 'Excavation & Bedding' : type === 'pipe' ? 'Pipe Laying & Alignment' : 'Backfill & Compaction'}</h4>{EQUIPMENT[type].map((eq, i) => (<label key={i} className={`block p-2 rounded mb-1 cursor-pointer ${r4Eq[type] === i ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-50'}`}><input type="radio" checked={r4Eq[type] === i} onChange={() => setR4Eq(p => ({...p, [type]: i}))} className="mr-2" />{eq.name}<div className="text-xs text-gray-500 ml-5">{eq.rate} ft/day | ${eq.cost}/day</div></label>))}</div>))}
+              {['exc', 'pipe', 'back'].map((type) => (<div key={type} className="border rounded p-3"><h4 className={`font-bold mb-2 ${type === 'exc' ? 'text-blue-700' : type === 'pipe' ? 'text-green-700' : 'text-orange-700'}`}>{type === 'exc' ? 'Excavation & Bedding' : type === 'pipe' ? 'Pipe Laying & Alignment' : 'Backfill & Compaction'}</h4>{EQUIPMENT[type].map((eq, i) => (<label key={i} className={`block p-2 rounded mb-1 cursor-pointer ${r4Eq[type] === i ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-50'}`}><input type="radio" checked={r4Eq[type] === i} onChange={() => { setR4Eq(p => ({...p, [type]: i})); logValueChange(4, `${type}Equipment`, eq.name); }} className="mr-2" />{eq.name}<div className="text-xs text-gray-500 ml-5">{eq.rate} ft/day | ${eq.cost}/day</div></label>))}</div>))}
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
@@ -2111,9 +2403,9 @@ export default function LOBGame() {
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-3">Equipment Configuration (Multiple Units)</h3>
             <div className="grid grid-cols-3 gap-4">
-              {['exc', 'pipe', 'back'].map((type) => (<div key={type} className={`border rounded p-3 ${type === 'exc' ? 'bg-blue-50' : type === 'pipe' ? 'bg-green-50' : 'bg-orange-50'}`}><h4 className={`font-bold mb-2 ${type === 'exc' ? 'text-blue-700' : type === 'pipe' ? 'text-green-700' : 'text-orange-700'}`}>{type === 'exc' ? 'Excavation & Bedding' : type === 'pipe' ? 'Pipe Laying & Alignment' : 'Backfill & Compaction'}</h4>{Object.keys(r5Config[type]).map((key) => { const eq = EQUIPMENT[type][type === 'pipe' ? (key === 'standard' ? 0 : 1) : (key === 'small' ? 0 : key === 'standard' ? 1 : 2)]; return (<div key={key} className="flex items-center justify-between bg-white p-2 rounded mb-1"><div className="text-sm">{eq.name}<div className="text-xs text-gray-500">{eq.rate} ft/d | ${eq.cost}/d</div></div><div className="flex items-center gap-1"><button onClick={() => setR5Config(p => ({...p, [type]: {...p[type], [key]: Math.max(0, p[type][key] - 1)}}))} className="w-6 h-6 bg-gray-200 rounded font-bold">-</button><span className="w-6 text-center font-bold">{r5Config[type][key]}</span><button onClick={() => setR5Config(p => ({...p, [type]: {...p[type], [key]: p[type][key] + 1}}))} className="w-6 h-6 bg-blue-200 rounded font-bold">+</button></div></div>); })}</div>))}
+              {['exc', 'pipe', 'back'].map((type) => (<div key={type} className={`border rounded p-3 ${type === 'exc' ? 'bg-blue-50' : type === 'pipe' ? 'bg-green-50' : 'bg-orange-50'}`}><h4 className={`font-bold mb-2 ${type === 'exc' ? 'text-blue-700' : type === 'pipe' ? 'text-green-700' : 'text-orange-700'}`}>{type === 'exc' ? 'Excavation & Bedding' : type === 'pipe' ? 'Pipe Laying & Alignment' : 'Backfill & Compaction'}</h4>{Object.keys(r5Config[type]).map((key) => { const eq = EQUIPMENT[type][type === 'pipe' ? (key === 'standard' ? 0 : 1) : (key === 'small' ? 0 : key === 'standard' ? 1 : 2)]; return (<div key={key} className="flex items-center justify-between bg-white p-2 rounded mb-1"><div className="text-sm">{eq.name}<div className="text-xs text-gray-500">{eq.rate} ft/d | ${eq.cost}/d</div></div><div className="flex items-center gap-1"><button onClick={() => { const newVal = Math.max(0, r5Config[type][key] - 1); setR5Config(p => ({...p, [type]: {...p[type], [key]: newVal}})); logValueChange(5, `${type}_${key}`, newVal); }} className="w-6 h-6 bg-gray-200 rounded font-bold">-</button><span className="w-6 text-center font-bold">{r5Config[type][key]}</span><button onClick={() => { const newVal = r5Config[type][key] + 1; setR5Config(p => ({...p, [type]: {...p[type], [key]: newVal}})); logValueChange(5, `${type}_${key}`, newVal); }} className="w-6 h-6 bg-blue-200 rounded font-bold">+</button></div></div>); })}</div>))}
             </div>
-            <div className="mt-4 p-3 bg-purple-50 rounded flex items-center gap-4"><span className="font-bold">Buffer:</span><input type="range" min="1" max="10" value={r5Buffer} onChange={e => setR5Buffer(+e.target.value)} className="flex-1" /><span className="text-2xl font-bold text-purple-600 w-12">{r5Buffer}</span></div>
+            <div className="mt-4 p-3 bg-purple-50 rounded flex items-center gap-4"><span className="font-bold">Buffer:</span><input type="range" min="1" max="10" value={r5Buffer} onChange={e => { const newVal = +e.target.value; setR5Buffer(newVal); logValueChange(5, 'buffer', newVal); }} className="flex-1" /><span className="text-2xl font-bold text-purple-600 w-12">{r5Buffer}</span></div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-2">R5 Schedule</h3>
