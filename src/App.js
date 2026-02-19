@@ -33,14 +33,13 @@ const EQUIPMENT = {
   ],
 };
 
-
-// -------------------- R1 DRAG SCHEDULER HELPERS/COMPONENTS --------------------
 const CORRECT_DURATIONS = {
   exc: Math.ceil(PROJECT_LENGTH / CREWS.exc.rate),
   pipe: Math.ceil(PROJECT_LENGTH / CREWS.pipe.rate),
   back: Math.ceil(PROJECT_LENGTH / CREWS.back.rate),
 };
 
+// -------------------- DRAGGABLE BAR CHART --------------------
 function DraggableBarChart({ schedule, durations, onScheduleChange }) {
   const chartRef = useRef(null);
   const [dragging, setDragging] = useState(null);
@@ -143,7 +142,6 @@ function DraggableBarChart({ schedule, durations, onScheduleChange }) {
   );
 }
 
-// Standalone input components (defined outside Round1 to prevent re-mount on every render)
 function R1InputCell({ value, onChange, disabled }) {
   return <input type="number" value={value} onChange={onChange} disabled={disabled} className={`w-16 px-1 py-1 border-2 rounded text-center text-sm font-bold ${disabled ? 'bg-gray-100 border-gray-300 text-gray-400' : 'bg-yellow-50 border-yellow-400'}`} placeholder="?" />;
 }
@@ -156,6 +154,7 @@ function R1DurationInputCell({ value, onChange, isCorrect, submitted }) {
   return <input type="number" value={value} onChange={onChange} disabled={submitted && isCorrect} className={className} placeholder="?" />;
 }
 
+// -------------------- ROUND 1 --------------------
 function Round1({ onComplete, savedSchedule }) {
   const [durInput, setDurInput] = useState(savedSchedule ? { exc: String(CORRECT_DURATIONS.exc), pipe: String(CORRECT_DURATIONS.pipe), back: String(CORRECT_DURATIONS.back) } : { exc: '', pipe: '', back: '' });
   const [durValidated, setDurValidated] = useState(!!savedSchedule);
@@ -185,7 +184,7 @@ function Round1({ onComplete, savedSchedule }) {
     <div className="space-y-6">
       <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
         <h3 className="font-bold text-xl text-blue-900">📋 Round 1: Create Your Schedule</h3>
-        <p className="text-gray-600 mt-1">In this round, you will create a bar chart schedule for the pipeline project. First calculate each activity's duration, then input start and end days to build your schedule.</p>
+        <p className="text-gray-600 mt-1">First calculate each activity's duration, then input start days to build your schedule.</p>
       </div>
       <div className="bg-white rounded-lg shadow p-5">
         <h4 className="font-bold text-gray-700 mb-4">📐 Activity Sequence & Duration Calculation</h4>
@@ -218,7 +217,6 @@ function Round1({ onComplete, savedSchedule }) {
         <div className="bg-white rounded-lg shadow p-5">
           <h4 className="font-bold text-gray-700 mb-4">📝 Build Your Schedule</h4>
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4"><div className="font-bold text-yellow-800 mb-2">Formula: End = Start + Duration - 1</div></div>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4"><div className="text-sm text-blue-800"><strong>Example:</strong> Excavation starts Day 15, duration {CORRECT_DURATIONS.exc} days<br/>End = 15 + {CORRECT_DURATIONS.exc} - 1 = <strong>Day {15 + CORRECT_DURATIONS.exc - 1}</strong></div></div>
           <p className="text-sm text-gray-600 mb-3">Input the Start day for each activity. End is calculated automatically.</p>
           <table className="w-full text-sm border">
             <thead className="bg-gray-100"><tr><th className="px-2 py-2 border text-left">Activity</th><th className="px-2 py-2 border text-center">Production Rate (ft/day)</th><th className="px-2 py-2 border text-center">Duration (days)</th><th className="px-2 py-2 border text-center bg-yellow-50">Start</th><th className="px-2 py-2 border text-center">End</th></tr></thead>
@@ -249,7 +247,6 @@ function Round1({ onComplete, savedSchedule }) {
     </div>
   );
 }
-// -------------------- END R1 DRAG SCHEDULER --------------------
 
 // -------------------- R2 COMPONENTS --------------------
 function FlashCard({ title, icon, isOpen, onToggle, children }) {
@@ -364,6 +361,7 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
   const PLOT_WIDTH = CHART_WIDTH - PADDING.left - PADDING.right;
   const PLOT_HEIGHT = CHART_HEIGHT - PADDING.top - PADDING.bottom;
   const MAX_DAY = 150;
+  const dur = { exc: CORRECT_DURATIONS.exc, pipe: CORRECT_DURATIONS.pipe, back: CORRECT_DURATIONS.back };
   const dayToX = (day) => PADDING.left + (day / MAX_DAY) * PLOT_WIDTH;
   const xToDay = (x) => Math.round(((x - PADDING.left) / PLOT_WIDTH) * MAX_DAY);
   const distToY = (dist) => PADDING.top + PLOT_HEIGHT - (dist / PROJECT_LENGTH) * PLOT_HEIGHT;
@@ -388,7 +386,7 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
   const handleChartHover = (e) => { if (dragging || !chartRef.current) return; const rect = chartRef.current.getBoundingClientRect(); const x = e.clientX - rect.left; const day = xToDay(x); if (day >= 0 && day <= MAX_DAY && x >= PADDING.left && x <= CHART_WIDTH - PADDING.right) setHover({ day, x, y: e.clientY - rect.top }); else setHover(null); };
 
   const r1Lines = { exc: { start: r1Schedule.excS, end: r1Schedule.excE }, pipe: { start: r1Schedule.pipeS, end: r1Schedule.pipeE }, back: { start: r1Schedule.backS, end: r1Schedule.backE } };
-  const r2Lines = { exc: { start: r2Schedule.excS, end: r2Schedule.excS + durations.exc - 1 }, pipe: { start: r2Schedule.pipeS, end: r2Schedule.pipeS + durations.pipe - 1 }, back: { start: r2Schedule.backS, end: r2Schedule.backS + durations.back - 1 } };
+  const r2Lines = { exc: { start: r2Schedule.excS, end: r2Schedule.excS + dur.exc - 1 }, pipe: { start: r2Schedule.pipeS, end: r2Schedule.pipeS + dur.pipe - 1 }, back: { start: r2Schedule.backS, end: r2Schedule.backS + dur.back - 1 } };
   const colors = { exc: { stroke: '#2563eb', name: 'Excavation & Bedding', rate: CREWS.exc.rate }, pipe: { stroke: '#16a34a', name: 'Pipe Laying & Alignment', rate: CREWS.pipe.rate }, back: { stroke: '#ea580c', name: 'Backfill & Compaction', rate: CREWS.back.rate } };
   const r2Sched = { excS: r2Lines.exc.start, excE: r2Lines.exc.end, pipeS: r2Lines.pipe.start, pipeE: r2Lines.pipe.end, backS: r2Lines.back.start, backE: r2Lines.back.end };
   const r2Conflicts = findConflicts(r2Sched, durations);
@@ -435,46 +433,35 @@ function DraggableLOBChart({ r1Schedule, r2Schedule, onR2Change, durations }) {
         </div>
       </div>
       <p className="text-sm text-gray-500 mt-2 text-center"><span className="hidden md:inline">🖱️ Drag the solid lines or circles to adjust start days</span><span className="md:hidden">👆 Touch and drag the circles to adjust start days</span></p>
-      <div className="lg:hidden mt-2 flex flex-wrap gap-x-3 gap-y-1 justify-center text-xs">
-        <span className="text-gray-500 font-bold">R1 ---</span>{['exc', 'pipe', 'back'].map(id => (<span key={`sm-r1-${id}`} style={{ color: colors[id].stroke }}>{colors[id].name.split(' & ')[0]}</span>))}
-        <span className="text-gray-500 font-bold ml-2">R2 ─</span>{['exc', 'pipe', 'back'].map(id => (<span key={`sm-r2-${id}`} style={{ color: colors[id].stroke }}>{colors[id].name.split(' & ')[0]}</span>))}
-      </div>
     </div>
   );
 }
-// -------------------- END R2 COMPONENTS --------------------
 
-
-function R2InputCell({ value, onChange, correct, submitted }) {
-  let bg = "bg-yellow-50 border-yellow-400";
-  if (submitted) bg = parseInt(value) === correct ? "bg-green-100 border-green-500" : "bg-red-100 border-red-500";
-  return <input type="number" value={value} onChange={onChange} className={`w-16 px-1 py-1 border-2 rounded text-center text-sm ${bg}`} />;
-}
-
-
+// ==================== MAIN GAME COMPONENT (NO SURVEYS) ====================
 export default function LOBGame() {
   const [round, setRound] = useState(0);
   const [name, setName] = useState('');
-  const [highestRound, setHighestRound] = useState(0);
-  const [backCount, setBackCount] = useState({ r2to1: 0, r3to2: 0, r4to3: 0, r5to4: 0, summaryTo5: 0 });
+
   const [r1Schedule, setR1Schedule] = useState(null);
   const [r2Schedule, setR2Schedule] = useState(null);
   const [r2Validated, setR2Validated] = useState(false);
-  const [r2FlashCards, setR2FlashCards] = useState({ whyProblem: false, whyMatter: false, whatIsLOB: false, howToFix: false, distanceCalc: false, assumptions: false, howToRevise: false });
-  useEffect(() => { if (round === 2 && !r2Schedule && r1Schedule) setR2Schedule({ excS: r1Schedule.excS, pipeS: r1Schedule.pipeS, backS: r1Schedule.backS }); }, [round, r2Schedule, r1Schedule]);
+  const [r2FlashCards, setR2FlashCards] = useState({ whyProblem: false, whyMatter: false, whatIsLOB: false, howToFix: false, assumptions: false, howToRevise: false });
+
+  useEffect(() => {
+    if (round === 2 && !r2Schedule && r1Schedule) {
+      setR2Schedule({ excS: r1Schedule.excS, pipeS: r1Schedule.pipeS, backS: r1Schedule.backS });
+    }
+  }, [round, r2Schedule, r1Schedule]);
+
   const [r3Buffer, setR3Buffer] = useState(5);
   const [r4Eq, setR4Eq] = useState({ exc: 1, pipe: 0, back: 1 });
   const [r5Config, setR5Config] = useState({ exc: { small: 0, standard: 1, large: 0 }, pipe: { standard: 1, heavy: 0 }, back: { small: 0, standard: 1, large: 0 } });
   const [r5Buffer, setR5Buffer] = useState(5);
   const [results, setResults] = useState({});
-  const [r5FirstAttempt, setR5FirstAttempt] = useState(null);
 
   const dur = useMemo(() => ({ exc: Math.ceil(PROJECT_LENGTH / CREWS.exc.rate), pipe: Math.ceil(PROJECT_LENGTH / CREWS.pipe.rate), back: Math.ceil(PROJECT_LENGTH / CREWS.back.rate) }), []);
 
-  const r1Student = useMemo(() => {
-    if (!r1Schedule) return { excS: 0, excE: 0, pipeS: 0, pipeE: 0, backS: 0, backE: 0, end: 0 };
-    return r1Schedule;
-  }, [r1Schedule]);
+  const r1Student = useMemo(() => r1Schedule || { excS: 0, excE: 0, pipeS: 0, pipeE: 0, backS: 0, backE: 0, end: 0 }, [r1Schedule]);
 
   const r2Correct = useMemo(() => {
     const excS = MOB_DAYS + 1, excE = excS + dur.exc - 1;
@@ -487,8 +474,6 @@ export default function LOBGame() {
     if (!r2Schedule) return r1Student;
     return { excS: r2Schedule.excS, excE: r2Schedule.excS + dur.exc - 1, pipeS: r2Schedule.pipeS, pipeE: r2Schedule.pipeS + dur.pipe - 1, backS: r2Schedule.backS, backE: r2Schedule.backS + dur.back - 1, end: Math.max(r2Schedule.excS + dur.exc - 1, r2Schedule.pipeS + dur.pipe - 1, r2Schedule.backS + dur.back - 1) };
   }, [r2Schedule, r1Student, dur]);
-
-  const r2IsCorrect = r2Student.excS === r2Correct.excS && r2Student.pipeS === r2Correct.pipeS && r2Student.backS === r2Correct.backS;
 
   const r2Cost = useMemo(() => {
     const excC = dur.exc * CREWS.exc.cost, pipeC = dur.pipe * CREWS.pipe.cost, backC = dur.back * CREWS.back.cost;
@@ -575,25 +560,25 @@ export default function LOBGame() {
     if (round === 2) Object.assign(res, { ...r2Student, cost: r2Cost.total });
     if (round === 3) Object.assign(res, { ...r3, buffer: r3Buffer });
     if (round === 4) Object.assign(res, { end: r4.end, cost: r4Cost.total });
-    if (round === 5) {
-      const passed = r5.end <= TARGET_DAYS && r5Cost.total <= TARGET_COST;
-      Object.assign(res, { end: r5.end, cost: r5Cost.total, buffer: r5Buffer, pass: passed });
-      if (!r5FirstAttempt) setR5FirstAttempt({ end: r5.end, cost: r5Cost.total, buffer: r5Buffer, pass: passed });
-    }
+    if (round === 5) { Object.assign(res, { end: r5.end, cost: r5Cost.total, buffer: r5Buffer, pass: r5.end <= TARGET_DAYS && r5Cost.total <= TARGET_COST }); }
     setResults(p => ({ ...p, [round]: res }));
-    const nextR = round + 1;
-    setRound(nextR);
-    if (nextR > highestRound) setHighestRound(nextR);
+    setRound(round + 1);
   };
 
-  const goBack = () => {
-    if (round < 2) return;
-    const backKey = round === 2 ? 'r2to1' : round === 3 ? 'r3to2' : round === 4 ? 'r4to3' : round === 5 ? 'r5to4' : round === 6 ? 'summaryTo5' : null;
-    if (backKey) setBackCount(p => ({ ...p, [backKey]: p[backKey] + 1 }));
-    setRound(round - 1);
-  };
+  const goBack = () => { if (round >= 2) setRound(round - 1); };
   const canGoBack = round >= 2 && round <= 6;
 
+  const BudgetTable = ({ cost, durExc, durPipe, durBack, costExc, costPipe, costBack }) => (
+    <div className="grid grid-cols-2 gap-4 text-sm">
+      <table className="w-full border"><tbody>
+        <tr><td className="px-2 py-1 border">Mobilization</td><td className="px-2 py-1 border text-right">${MOB_COST.toLocaleString()}</td></tr>
+        <tr><td className="px-2 py-1 border">Excavation ({durExc}d × ${costExc})</td><td className="px-2 py-1 border text-right">${cost.excC.toLocaleString()}</td></tr>
+        <tr><td className="px-2 py-1 border">Pipe Laying ({durPipe}d × ${costPipe})</td><td className="px-2 py-1 border text-right">${cost.pipeC.toLocaleString()}</td></tr>
+        <tr><td className="px-2 py-1 border">Backfill ({durBack}d × ${costBack})</td><td className="px-2 py-1 border text-right">${cost.backC.toLocaleString()}</td></tr>
+        <tr className="bg-gray-100 font-bold"><td className="px-2 py-1 border">Direct Total</td><td className="px-2 py-1 border text-right">${cost.direct.toLocaleString()}</td></tr>
+      </tbody></table>
+      <table className="w-full border"><tbody>
+        <tr><td className="px-2 py-1 border">Direct Cost</td><td className="px-2 py-1 border text-right">${cost.direct.toLocaleString()}</td></tr>
         <tr><td className="px-2 py-1 border">Indirect (30%)</td><td className="px-2 py-1 border text-right">${cost.indirect.toLocaleString()}</td></tr>
         <tr><td className="px-2 py-1 border">Profit (5%)</td><td className="px-2 py-1 border text-right">${cost.profit.toLocaleString()}</td></tr>
         <tr className="bg-green-100 font-bold text-lg"><td className="px-2 py-1 border">TOTAL</td><td className="px-2 py-1 border text-right">${cost.total.toLocaleString()}</td></tr>
@@ -601,30 +586,15 @@ export default function LOBGame() {
     </div>
   );
 
-
-
-
-  // ==================== ROUND 0: INTRO ====================
+  // ==================== INTRO SCREEN ====================
   if (round === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 p-4">
         <div className="max-w-4xl mx-auto space-y-4">
-          <div className="text-center text-white mb-6">
-            <h1 className="text-4xl font-bold">🎮 LOB SIMULATION GAME</h1>
-            <p className="text-blue-200">5-Round Educational Simulation</p>
-          </div>
-
+          <div className="text-center text-white mb-6"><h1 className="text-4xl font-bold">🎮 LOB SIMULATION GAME</h1><p className="text-blue-200">5-Round Educational Simulation</p></div>
           <div className="bg-white rounded-xl p-5">
             <h2 className="text-xl font-bold text-blue-900 border-b pb-2 mb-4">📋 PROJECT OVERVIEW</h2>
-            <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-              <p className="text-sm leading-relaxed text-blue-900">
-                This simulation places you in the role of a construction planner responsible for scheduling
-                a major water pipeline project. Over five rounds, you will explore how crew productivity,
-                spacing (buffers), and activity sequencing influence progress using the Line of Balance (LOB)
-                method. Your goal is to build a feasible schedule, avoid crew conflicts, and optimize both
-                duration and cost—just like a real project engineer.
-              </p>
-            </div>
+            <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4"><p className="text-sm leading-relaxed text-blue-900">This simulation places you in the role of a construction planner responsible for scheduling a major water pipeline project. Over five rounds, you will explore how crew productivity, spacing (buffers), and activity sequencing influence progress using the Line of Balance (LOB) method. Your goal is to build a feasible schedule, avoid crew conflicts, and optimize both duration and cost—just like a real project engineer.</p></div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
               <div className="bg-blue-50 p-3 rounded"><div className="text-gray-500">Project</div><div className="font-bold">College Station Water Pipeline</div></div>
               <div className="bg-blue-50 p-3 rounded"><div className="text-gray-500">Pipeline Type</div><div className="font-bold">24" Prestressed Concrete Cylinder Pipe</div></div>
@@ -632,25 +602,13 @@ export default function LOBGame() {
               <div className="bg-blue-50 p-3 rounded"><div className="text-gray-500">Mobilization</div><div className="font-bold">{MOB_DAYS} days — ${MOB_COST.toLocaleString()}</div></div>
             </div>
           </div>
-
           <div className="bg-white rounded-xl p-5">
             <h2 className="text-xl font-bold text-blue-900 border-b pb-2 mb-4">👷 CREW DEFINITIONS</h2>
-            <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-              <p className="text-sm leading-relaxed text-blue-900">This project uses three sequential pipeline crews—Excavation, Pipe Laying, and Backfill—each with its own productivity and equipment.</p>
-            </div>
+            <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4"><p className="text-sm leading-relaxed text-blue-900">This project uses three sequential pipeline crews—Excavation, Pipe Laying, and Backfill—each with its own productivity and equipment.</p></div>
             <div className="space-y-3">
-              <details className="group rounded-lg border border-blue-200 bg-blue-50 p-4">
-                <summary className="flex cursor-pointer items-center justify-between list-none"><div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-700">⛏️</div><div><div className="font-bold text-blue-900">Crew A — Excavation & Bedding</div><div className="text-xs text-blue-800/70">Uses Excavator</div></div></div><span className="text-blue-900/70 transition-transform group-open:rotate-180">▾</span></summary>
-                <p className="mt-3 text-sm leading-relaxed text-blue-900">Crew A uses an <strong>Excavator</strong> to dig the trench and prepare the bedding. As the first crew in sequence, it sets the pace for all other crews.</p>
-              </details>
-              <details className="group rounded-lg border border-green-200 bg-green-50 p-4">
-                <summary className="flex cursor-pointer items-center justify-between list-none"><div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-100 text-green-700">🔧</div><div><div className="font-bold text-green-900">Crew B — Pipe Laying & Alignment</div><div className="text-xs text-green-800/70">Uses Mobile Crane</div></div></div><span className="text-green-900/70 transition-transform group-open:rotate-180">▾</span></summary>
-                <p className="mt-3 text-sm leading-relaxed text-green-900">Crew B uses a <strong>Mobile Crane</strong> to lift and align pipe sections in the trench prepared by Crew A.</p>
-              </details>
-              <details className="group rounded-lg border border-orange-200 bg-orange-50 p-4">
-                <summary className="flex cursor-pointer items-center justify-between list-none"><div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 text-orange-700">🚜</div><div><div className="font-bold text-orange-900">Crew C — Backfill & Compaction</div><div className="text-xs text-orange-800/70">Uses Backfill Set</div></div></div><span className="text-orange-900/70 transition-transform group-open:rotate-180">▾</span></summary>
-                <p className="mt-3 text-sm leading-relaxed text-orange-900">Crew C uses a <strong>Backfill Set</strong> (Excavator + Compactor) to place and compact soil over installed pipes.</p>
-              </details>
+              <details className="group rounded-lg border border-blue-200 bg-blue-50 p-4"><summary className="flex cursor-pointer items-center justify-between list-none"><div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-700">⛏️</div><div><div className="font-bold text-blue-900">Crew A — Excavation & Bedding</div><div className="text-xs text-blue-800/70">Uses Excavator</div></div></div><span className="text-blue-900/70 transition-transform group-open:rotate-180">▾</span></summary><p className="mt-3 text-sm leading-relaxed text-blue-900">Crew A uses an <strong>Excavator</strong> to dig the trench and prepare the bedding. As the first crew in sequence, it sets the pace for all other crews.</p></details>
+              <details className="group rounded-lg border border-green-200 bg-green-50 p-4"><summary className="flex cursor-pointer items-center justify-between list-none"><div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-100 text-green-700">🔧</div><div><div className="font-bold text-green-900">Crew B — Pipe Laying & Alignment</div><div className="text-xs text-green-800/70">Uses Mobile Crane</div></div></div><span className="text-green-900/70 transition-transform group-open:rotate-180">▾</span></summary><p className="mt-3 text-sm leading-relaxed text-green-900">Crew B uses a <strong>Mobile Crane</strong> to lift and align pipe sections in the trench prepared by Crew A.</p></details>
+              <details className="group rounded-lg border border-orange-200 bg-orange-50 p-4"><summary className="flex cursor-pointer items-center justify-between list-none"><div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 text-orange-700">🚜</div><div><div className="font-bold text-orange-900">Crew C — Backfill & Compaction</div><div className="text-xs text-orange-800/70">Uses Backfill Set</div></div></div><span className="text-orange-900/70 transition-transform group-open:rotate-180">▾</span></summary><p className="mt-3 text-sm leading-relaxed text-orange-900">Crew C uses a <strong>Backfill Set</strong> (Excavator + Compactor) to place and compact soil over installed pipes.</p></details>
             </div>
             <div className="mt-5 overflow-x-auto">
               <table className="w-full text-sm font-bold table-auto">
@@ -663,9 +621,6 @@ export default function LOBGame() {
               </table>
             </div>
           </div>
-
-          <div className="bg-white rounded-xl p-5">
-            <h2 className="text-xl font-bold text-blue-900 mb-4">🚀 Ready to Play?</h2>
           <div className="bg-white rounded-xl p-5">
             <h2 className="text-xl font-bold text-blue-900 mb-4">🚀 Ready to Play?</h2>
             <input type="text" placeholder="Enter your name" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-3 border-2 rounded-lg mb-4 text-lg" />
@@ -676,19 +631,14 @@ export default function LOBGame() {
     );
   }
 
-  // ==================== ROUND 6: GAME SUMMARY ====================
+  // ==================== GAME COMPLETE ====================
   if (round === 6) {
     const pass = results[5]?.pass;
     const r2BaseCost = r2Cost.total;
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 p-4">
         <div className="max-w-4xl mx-auto bg-white rounded-xl p-6 space-y-6">
-          <div className="text-center">
-            <div className="text-6xl">{pass ? '🏆' : '📊'}</div>
-            <h1 className="text-3xl font-bold text-blue-900">Game Complete!</h1>
-            <p className="text-gray-600">Great job, {name}!</p>
-          </div>
-
+          <div className="text-center"><div className="text-6xl">{pass ? '🏆' : '📊'}</div><h1 className="text-3xl font-bold text-blue-900">Game Complete!</h1><p className="text-gray-600">Great job, {name}!</p></div>
           <div className={`p-4 rounded-lg ${pass ? 'bg-green-100 border-2 border-green-500' : 'bg-yellow-100 border-2 border-yellow-500'}`}>
             <h3 className="font-bold text-lg">{pass ? '✅ Constraints Met!' : '⚠️ Constraints Not Met'}</h3>
             <div className="grid grid-cols-2 gap-4 mt-2">
@@ -696,68 +646,20 @@ export default function LOBGame() {
               <div>Cost: <span className={`font-bold ${results[5]?.cost <= TARGET_COST ? 'text-green-600' : 'text-red-600'}`}>${results[5]?.cost?.toLocaleString()}</span> <span className="text-gray-400">(target: ≤${TARGET_COST.toLocaleString()})</span></div>
             </div>
           </div>
-
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="font-bold text-lg mb-3">📊 Your Results by Round</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead><tr className="bg-blue-100"><th className="px-3 py-2 border text-left">Round</th><th className="px-3 py-2 border text-left">Description</th><th className="px-3 py-2 border text-center">Duration</th><th className="px-3 py-2 border text-center">Cost</th><th className="px-3 py-2 border text-center">Buffer</th></tr></thead>
-                <tbody>
-                  <tr className="bg-white"><td className="px-3 py-2 border font-bold text-blue-600">R1</td><td className="px-3 py-2 border">Bar Chart</td><td className="px-3 py-2 border text-center">{results[1]?.end || '-'} days</td><td className="px-3 py-2 border text-center">${r2BaseCost.toLocaleString()}</td><td className="px-3 py-2 border text-center text-gray-400">-</td></tr>
-                  <tr className="bg-gray-50"><td className="px-3 py-2 border font-bold text-blue-600">R2</td><td className="px-3 py-2 border">LOB Analysis</td><td className="px-3 py-2 border text-center">{results[2]?.end || '-'} days</td><td className="px-3 py-2 border text-center">${r2BaseCost.toLocaleString()}</td><td className="px-3 py-2 border text-center">{DEFAULT_BUFFER} days</td></tr>
-                  <tr className="bg-white"><td className="px-3 py-2 border font-bold text-blue-600">R3</td><td className="px-3 py-2 border">Buffer Analysis</td><td className="px-3 py-2 border text-center">{results[3]?.end || '-'} days</td><td className="px-3 py-2 border text-center">${r2BaseCost.toLocaleString()}</td><td className="px-3 py-2 border text-center">{results[3]?.buffer || '-'} days</td></tr>
-                  <tr className="bg-gray-50"><td className="px-3 py-2 border font-bold text-orange-600">R4</td><td className="px-3 py-2 border">Rate Analysis</td><td className="px-3 py-2 border text-center">{results[4]?.end || '-'} days</td><td className="px-3 py-2 border text-center">${results[4]?.cost?.toLocaleString() || '-'}</td><td className="px-3 py-2 border text-center">{DEFAULT_BUFFER} days</td></tr>
-                  <tr className={pass ? 'bg-green-50' : 'bg-yellow-50'}><td className="px-3 py-2 border font-bold text-purple-600">R5</td><td className="px-3 py-2 border">Optimization</td><td className={`px-3 py-2 border text-center font-bold ${results[5]?.end <= TARGET_DAYS ? 'text-green-600' : 'text-red-600'}`}>{results[5]?.end || '-'} days {results[5]?.end <= TARGET_DAYS ? '✅' : '❌'}</td><td className={`px-3 py-2 border text-center font-bold ${results[5]?.cost <= TARGET_COST ? 'text-green-600' : 'text-red-600'}`}>${results[5]?.cost?.toLocaleString() || '-'} {results[5]?.cost <= TARGET_COST ? '✅' : '❌'}</td><td className="px-3 py-2 border text-center">{results[5]?.buffer || '-'} days</td></tr>
-                </tbody>
-              </table>
-            </div>
+            <table className="w-full text-sm border-collapse">
+              <thead><tr className="bg-blue-100"><th className="px-3 py-2 border text-left">Round</th><th className="px-3 py-2 border text-left">Description</th><th className="px-3 py-2 border text-center">Duration</th><th className="px-3 py-2 border text-center">Cost</th><th className="px-3 py-2 border text-center">Buffer</th></tr></thead>
+              <tbody>
+                <tr className="bg-white"><td className="px-3 py-2 border font-bold text-blue-600">R1</td><td className="px-3 py-2 border">Bar Chart</td><td className="px-3 py-2 border text-center">{results[1]?.end || '-'} days</td><td className="px-3 py-2 border text-center">${r2BaseCost.toLocaleString()}</td><td className="px-3 py-2 border text-center text-gray-400">-</td></tr>
+                <tr className="bg-gray-50"><td className="px-3 py-2 border font-bold text-blue-600">R2</td><td className="px-3 py-2 border">LOB Analysis</td><td className="px-3 py-2 border text-center">{results[2]?.end || '-'} days</td><td className="px-3 py-2 border text-center">${r2BaseCost.toLocaleString()}</td><td className="px-3 py-2 border text-center">{DEFAULT_BUFFER} days</td></tr>
+                <tr className="bg-white"><td className="px-3 py-2 border font-bold text-blue-600">R3</td><td className="px-3 py-2 border">Buffer Analysis</td><td className="px-3 py-2 border text-center">{results[3]?.end || '-'} days</td><td className="px-3 py-2 border text-center">${r2BaseCost.toLocaleString()}</td><td className="px-3 py-2 border text-center">{results[3]?.buffer || '-'} days</td></tr>
+                <tr className="bg-gray-50"><td className="px-3 py-2 border font-bold text-orange-600">R4</td><td className="px-3 py-2 border">Rate Analysis</td><td className="px-3 py-2 border text-center">{results[4]?.end || '-'} days</td><td className="px-3 py-2 border text-center">${results[4]?.cost?.toLocaleString() || '-'}</td><td className="px-3 py-2 border text-center">{DEFAULT_BUFFER} days</td></tr>
+                <tr className={pass ? 'bg-green-50' : 'bg-yellow-50'}><td className="px-3 py-2 border font-bold text-purple-600">R5</td><td className="px-3 py-2 border">Optimization</td><td className={`px-3 py-2 border text-center font-bold ${results[5]?.end <= TARGET_DAYS ? 'text-green-600' : 'text-red-600'}`}>{results[5]?.end || '-'} days {results[5]?.end <= TARGET_DAYS ? '✅' : '❌'}</td><td className={`px-3 py-2 border text-center font-bold ${results[5]?.cost <= TARGET_COST ? 'text-green-600' : 'text-red-600'}`}>${results[5]?.cost?.toLocaleString() || '-'} {results[5]?.cost <= TARGET_COST ? '✅' : '❌'}</td><td className="px-3 py-2 border text-center">{results[5]?.buffer || '-'} days</td></tr>
+              </tbody>
+            </table>
             <p className="text-xs text-gray-500 mt-2">💡 Notice: R1-R3 have the <strong>same cost</strong> because only buffer/timing changed, not equipment.</p>
           </div>
-
-          {r5FirstAttempt && (r5FirstAttempt.end !== results[5]?.end || r5FirstAttempt.cost !== results[5]?.cost) && (
-            <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
-              <h3 className="font-bold text-blue-800 mb-3">🔄 R5 Revision Improvement</h3>
-              <p className="text-sm text-blue-700 mb-3">You went back and revised your R5 result. Here's the comparison:</p>
-              <table className="w-full text-sm border-collapse">
-                <thead><tr className="bg-blue-100"><th className="px-3 py-2 border"></th><th className="px-3 py-2 border text-center">1st Attempt</th><th className="px-3 py-2 border text-center">Final Result</th><th className="px-3 py-2 border text-center">Change</th></tr></thead>
-                <tbody>
-                  <tr>
-                    <td className="px-3 py-2 border font-bold">Duration</td>
-                    <td className={`px-3 py-2 border text-center ${r5FirstAttempt.end <= TARGET_DAYS ? 'text-green-600' : 'text-red-600'}`}>{r5FirstAttempt.end} days</td>
-                    <td className={`px-3 py-2 border text-center font-bold ${results[5]?.end <= TARGET_DAYS ? 'text-green-600' : 'text-red-600'}`}>{results[5]?.end} days</td>
-                    <td className={`px-3 py-2 border text-center font-bold ${results[5]?.end < r5FirstAttempt.end ? 'text-green-600' : results[5]?.end > r5FirstAttempt.end ? 'text-red-600' : 'text-gray-500'}`}>
-                      {results[5]?.end < r5FirstAttempt.end ? `↓ ${r5FirstAttempt.end - results[5]?.end} days` : results[5]?.end > r5FirstAttempt.end ? `↑ ${results[5]?.end - r5FirstAttempt.end} days` : 'No change'}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="px-3 py-2 border font-bold">Cost</td>
-                    <td className={`px-3 py-2 border text-center ${r5FirstAttempt.cost <= TARGET_COST ? 'text-green-600' : 'text-red-600'}`}>${r5FirstAttempt.cost?.toLocaleString()}</td>
-                    <td className={`px-3 py-2 border text-center font-bold ${results[5]?.cost <= TARGET_COST ? 'text-green-600' : 'text-red-600'}`}>${results[5]?.cost?.toLocaleString()}</td>
-                    <td className={`px-3 py-2 border text-center font-bold ${results[5]?.cost < r5FirstAttempt.cost ? 'text-green-600' : results[5]?.cost > r5FirstAttempt.cost ? 'text-red-600' : 'text-gray-500'}`}>
-                      {results[5]?.cost < r5FirstAttempt.cost ? `↓ $${(r5FirstAttempt.cost - results[5]?.cost).toLocaleString()}` : results[5]?.cost > r5FirstAttempt.cost ? `↑ $${(results[5]?.cost - r5FirstAttempt.cost).toLocaleString()}` : 'No change'}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="px-3 py-2 border font-bold">Passed?</td>
-                    <td className={`px-3 py-2 border text-center ${r5FirstAttempt.pass ? 'text-green-600' : 'text-red-600'}`}>{r5FirstAttempt.pass ? '✅ Yes' : '❌ No'}</td>
-                    <td className={`px-3 py-2 border text-center font-bold ${results[5]?.pass ? 'text-green-600' : 'text-red-600'}`}>{results[5]?.pass ? '✅ Yes' : '❌ No'}</td>
-                    <td className={`px-3 py-2 border text-center font-bold ${!r5FirstAttempt.pass && results[5]?.pass ? 'text-green-600' : ''}`}>
-                      {!r5FirstAttempt.pass && results[5]?.pass ? '🎉 Improved!' : r5FirstAttempt.pass && !results[5]?.pass ? '⚠️ Regressed' : 'Same'}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
-            <h3 className="font-bold text-yellow-800">📚 What You Learned</h3>
-            <ul className="mt-2 text-sm text-yellow-900 space-y-1">
-              <li><strong>R1-R2:</strong> LOB visualizes crew progress & helps identify conflicts</li>
-              <li><strong>R3:</strong> Buffer ↑ → Duration ↑, but Cost stays the <strong>same</strong></li>
-              <li><strong>R4:</strong> Rate ↑ → Duration ↓, Cost may ↑ or ↓</li>
-              <li><strong>R5:</strong> Balance equipment + buffer to meet <strong>both</strong> constraints</li>
-            </ul>
           <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
             <h3 className="font-bold text-yellow-800">📚 What You Learned</h3>
             <ul className="mt-2 text-sm text-yellow-900 space-y-1">
@@ -767,21 +669,24 @@ export default function LOBGame() {
               <li><strong>R5:</strong> Balance equipment + buffer to meet <strong>both</strong> constraints</li>
             </ul>
           </div>
-          <button onClick={goBack} className="w-full bg-blue-500 text-white py-3 rounded-lg font-bold hover:bg-blue-600">← Go Back to R5 to Revise</button>
-          <button onClick={() => window.location.reload()} className="w-full bg-gray-200 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-300">🔄 Play Again</button>
+          <div className="flex gap-3">
+            <button onClick={() => setRound(5)} className="flex-1 bg-blue-500 text-white py-3 rounded-lg font-bold hover:bg-blue-600">← Go Back to R5 to Revise</button>
+            <button onClick={() => window.location.reload()} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700">🔄 Play Again</button>
+          </div>
         </div>
       </div>
     );
   }
 
-  // ==================== GAME ROUNDS (1-5) ====================
+  // ==================== GAME ROUNDS 1-5 ====================
   const titles = { 1: 'Bar Chart', 2: 'LOB Analysis', 3: 'Buffer Analysis', 4: 'Rate Analysis', 5: 'Optimize for Constraints' };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="bg-blue-900 text-white py-2 px-4 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
-            {canGoBack && <button onClick={goBack} className="px-3 py-1 bg-white text-blue-900 hover:bg-blue-100 rounded text-sm font-bold shadow-sm">← Back</button>}
+            {canGoBack && <button onClick={goBack} className="px-3 py-1 bg-white text-blue-900 hover:bg-blue-100 rounded text-sm font-bold transition-all shadow-sm">← Back</button>}
             <span><span className="text-blue-300">Player:</span> <strong>{name}</strong></span>
           </div>
           <span className="font-bold">Round {round}: {titles[round]}</span>
@@ -789,51 +694,28 @@ export default function LOBGame() {
         </div>
       </div>
       <div className="bg-white border-b"><div className="max-w-5xl mx-auto px-4 py-2 flex gap-1">{[1, 2, 3, 4, 5].map(r => (<div key={r} className={`flex-1 h-2 rounded ${r < round ? 'bg-green-500' : r === round ? 'bg-blue-500' : 'bg-gray-200'}`} />))}</div></div>
-      <div className="max-w-5xl mx-auto p-4 space-y-4">
-      </div>
-
-      <div className="bg-white border-b">
-        <div className="max-w-5xl mx-auto px-4 py-2 flex gap-1">
-          {[1, 2, 3, 4, 5].map(r => (
-            <div key={r} className={`flex-1 h-2 rounded ${r < round ? 'bg-green-500' : r === round ? 'bg-blue-500' : 'bg-gray-200'}`} />
-          ))}
-        </div>
-      </div>
 
       <div className="max-w-5xl mx-auto p-4 space-y-4">
-        {/* R1: Bar Chart (round === 2, round === 1) */}
-        {round === 1 && (
-          <Round1 savedSchedule={r1Schedule} onComplete={(fullSchedule) => {
-            setR1Schedule(fullSchedule);
-            setResults(p => ({ ...p, 1: { round: 1, ...fullSchedule } }));
-            setRound(2);
-            if (2 > highestRound) setHighestRound(2);
-          }} />
-        )}
 
-        {/* R2: LOB Analysis (round === 2) */}
+        {/* R1 */}
+        {round === 1 && <Round1 savedSchedule={r1Schedule} onComplete={(fs) => { setR1Schedule(fs); setResults(p => ({ ...p, 1: { round: 1, ...fs } })); setRound(2); }} />}
+
+        {/* R2 */}
         {round === 2 && (() => {
           const r1ConflictList = findConflicts(r1Student, dur);
           const r1HasConflicts = r1ConflictList.length > 0;
           const r2Sched = r2Schedule ? { excS: r2Schedule.excS, excE: r2Schedule.excS + dur.exc - 1, pipeS: r2Schedule.pipeS, pipeE: r2Schedule.pipeS + dur.pipe - 1, backS: r2Schedule.backS, backE: r2Schedule.backS + dur.back - 1 } : null;
           const r2ConflictList = r2Sched ? findConflicts(r2Sched, dur) : [];
           const excOk = r2Schedule ? r2Schedule.excS === MOB_DAYS + 1 : false;
-          const buf1 = r2Schedule ? r2Schedule.pipeS - r2Schedule.excS : 0;
-          const buf1Ok = buf1 === DEFAULT_BUFFER;
-          const buf2 = r2Sched ? r2Sched.backE - r2Sched.pipeE : 0;
-          const buf2Ok = buf2 === DEFAULT_BUFFER;
+          const buf1 = r2Schedule ? r2Schedule.pipeS - r2Schedule.excS : 0, buf1Ok = buf1 === DEFAULT_BUFFER;
+          const buf2 = r2Sched ? r2Sched.backE - r2Sched.pipeE : 0, buf2Ok = buf2 === DEFAULT_BUFFER;
           const noConflicts = r2ConflictList.length === 0;
           const allGreen = excOk && buf1Ok && buf2Ok && noConflicts;
 
           return (<>
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-            <h3 className="font-bold text-lg">📋 Round 2: Analyze with Line of Balance (LOB)</h3>
-            <p className="text-sm text-gray-600 mt-1">Your R1 schedule may have hidden conflicts. Use LOB to identify and fix them by applying a {DEFAULT_BUFFER}-day buffer between activities.</p>
-          </div>
-
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded"><h3 className="font-bold text-lg">📋 Round 2: Analyze with Line of Balance (LOB)</h3><p className="text-sm text-gray-600 mt-1">Your R1 schedule may have hidden conflicts. Use LOB to identify and fix them by applying a {DEFAULT_BUFFER}-day buffer.</p></div>
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-2">📊 Your R1 Schedule</h3>
-            <p className="text-sm text-gray-600 mb-3">Here is your schedule from Round 1. Compare the Bar Chart and LOB to see how the same schedule looks in each format.</p>
             <table className="w-full text-sm border mb-4">
               <thead className="bg-gray-100"><tr><th className="px-2 py-2 border text-left">Activity</th><th className="px-2 py-2 border text-center">Production Rate (ft/day)</th><th className="px-2 py-2 border text-center">Duration (days)</th><th className="px-2 py-2 border text-center">Start</th><th className="px-2 py-2 border text-center">End</th></tr></thead>
               <tbody>
@@ -848,23 +730,19 @@ export default function LOBGame() {
               <div className="border rounded-lg p-3"><h4 className="font-bold text-sm mb-2 text-center">📈 Line of Balance (LOB)</h4><LOBChartR1 schedule={r1Student} durations={dur} /></div>
             </div>
             <div className="mt-4 space-y-2">
-              <FlashCard title="Why the difference?" icon="💡" isOpen={r2FlashCards.whyProblem} onToggle={() => setR2FlashCards(p => ({ ...p, whyProblem: !p.whyProblem }))}><ul className="space-y-1"><li>• <strong>Bar Chart:</strong> Shows only TIME (when activities happen)</li><li>• <strong>LOB:</strong> Shows TIME + LOCATION (where crews are along the pipeline)</li></ul></FlashCard>
-              <FlashCard title="Why does this matter?" icon="⚠️" isOpen={r2FlashCards.whyMatter} onToggle={() => setR2FlashCards(p => ({ ...p, whyMatter: !p.whyMatter }))}><div className="space-y-2 text-sm"><p>In real construction, crews must work in sequence at every location.</p>{r1HasConflicts ? <p>Your LOB shows lines crossing — crews would collide on site.</p> : <p>Your LOB has no crossing yet, but without a buffer, any delay could cause a faster crew to catch up.</p>}<p>Buffers guarantee safe spacing between crews at all times.</p></div></FlashCard>
+              <FlashCard title="Why the difference?" icon="💡" isOpen={r2FlashCards.whyProblem} onToggle={() => setR2FlashCards(p => ({ ...p, whyProblem: !p.whyProblem }))}><ul className="space-y-1"><li>• <strong>Bar Chart:</strong> Shows only TIME</li><li>• <strong>LOB:</strong> Shows TIME + LOCATION</li></ul></FlashCard>
+              <FlashCard title="Why does this matter?" icon="⚠️" isOpen={r2FlashCards.whyMatter} onToggle={() => setR2FlashCards(p => ({ ...p, whyMatter: !p.whyMatter }))}><div className="space-y-2 text-sm"><p>In real construction, crews must work in sequence at every location.</p>{r1HasConflicts ? <p>Your LOB shows lines crossing — crews would collide on site.</p> : <p>Without a buffer, any delay could cause a faster crew to catch up.</p>}<p>Buffers guarantee safe spacing between crews at all times.</p></div></FlashCard>
             </div>
           </div>
-
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-2">📈 Revise with Line of Balance (LOB)</h3>
-            <p className="text-sm text-gray-600 mb-3">Now apply buffers to create a conflict-free schedule.</p>
             <div className="space-y-2 mb-4">
-              <FlashCard title="What is LOB?" icon="📚" isOpen={r2FlashCards.whatIsLOB} onToggle={() => setR2FlashCards(p => ({ ...p, whatIsLOB: !p.whatIsLOB }))}><ul className="space-y-1"><li>• LOB plots <strong>Distance</strong> (Y-axis) vs <strong>Time</strong> (X-axis)</li><li>• Line slope = production rate (steeper = faster crew)</li><li>• <strong>Lines crossing = CONFLICT</strong></li><li>• <strong>Parallel lines = safe schedule</strong></li></ul></FlashCard>
+              <FlashCard title="What is LOB?" icon="📚" isOpen={r2FlashCards.whatIsLOB} onToggle={() => setR2FlashCards(p => ({ ...p, whatIsLOB: !p.whatIsLOB }))}><ul className="space-y-1"><li>• LOB plots <strong>Distance</strong> (Y) vs <strong>Time</strong> (X)</li><li>• Steeper slope = faster crew</li><li>• <strong>Lines crossing = CONFLICT</strong></li></ul></FlashCard>
               <FlashCard title="How to fix conflicts?" icon="🔧" isOpen={r2FlashCards.howToFix} onToggle={() => setR2FlashCards(p => ({ ...p, howToFix: !p.howToFix }))}><div className="space-y-2 text-sm"><p>Add <strong>BUFFERS</strong> — a minimum time gap between crews.</p><div className="bg-blue-50 p-2 rounded"><strong>Slower follows faster:</strong> Start = Prev Start + Buffer</div><div className="bg-orange-50 p-2 rounded"><strong>Faster follows slower:</strong> Start = Prev End + Buffer − Duration + 1</div></div></FlashCard>
-              <FlashCard title="Assumptions" icon="📐" isOpen={r2FlashCards.assumptions} onToggle={() => setR2FlashCards(p => ({ ...p, assumptions: !p.assumptions }))}><ul className="space-y-1"><li>• Excavation starts on <strong>Day {MOB_DAYS + 1}</strong></li><li>• All activities must have a <strong>{DEFAULT_BUFFER}-day buffer</strong></li></ul></FlashCard>
-              <FlashCard title="How to revise" icon="🎯" isOpen={r2FlashCards.howToRevise} onToggle={() => setR2FlashCards(p => ({ ...p, howToRevise: !p.howToRevise }))}><div className="space-y-2 text-sm"><p>Each line has a <strong>● handle</strong> at the bottom. Drag left/right to change the start day.</p><div className="bg-gray-50 rounded p-2 space-y-1"><div className="flex items-center gap-2"><span className="inline-block w-3 h-3 rounded-full bg-blue-500"></span> <strong>Step 1:</strong> Drag Excavation to Day {MOB_DAYS + 1}</div><div className="flex items-center gap-2"><span className="inline-block w-3 h-3 rounded-full bg-green-500"></span> <strong>Step 2:</strong> Drag Pipe Laying until buffer shows "{DEFAULT_BUFFER}d" green</div><div className="flex items-center gap-2"><span className="inline-block w-3 h-3 rounded-full bg-orange-500"></span> <strong>Step 3:</strong> Drag Backfill until buffer shows "{DEFAULT_BUFFER}d" green</div></div></div></FlashCard>
+              <FlashCard title="Assumptions" icon="📐" isOpen={r2FlashCards.assumptions} onToggle={() => setR2FlashCards(p => ({ ...p, assumptions: !p.assumptions }))}><ul className="space-y-1"><li>• Excavation starts Day {MOB_DAYS + 1}</li><li>• All activities need a <strong>{DEFAULT_BUFFER}-day buffer</strong></li></ul></FlashCard>
+              <FlashCard title="How to revise" icon="🎯" isOpen={r2FlashCards.howToRevise} onToggle={() => setR2FlashCards(p => ({ ...p, howToRevise: !p.howToRevise }))}><div className="space-y-2 text-sm"><p>Drag the <strong>● handle</strong> at the bottom of each line left/right.</p></div></FlashCard>
             </div>
-
-            {r2Schedule && <DraggableLOBChart r1Schedule={r1Student} r2Schedule={r2Schedule} onR2Change={(newSched) => { setR2Schedule(newSched); setR2Validated(false); }} durations={dur} />}
-
+            {r2Schedule && <DraggableLOBChart r1Schedule={r1Student} r2Schedule={r2Schedule} onR2Change={(s) => { setR2Schedule(s); setR2Validated(false); }} durations={dur} />}
             {r2Schedule && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
                 <div className={`p-3 rounded-lg border-2 text-center ${noConflicts ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'}`}><div className="font-bold text-sm">{noConflicts ? '✅' : '⊗'} Conflicts</div><div className="text-xs mt-1">{noConflicts ? 'No conflicts' : `${r2ConflictList.length} conflict${r2ConflictList.length > 1 ? 's' : ''}`}</div></div>
@@ -873,9 +751,8 @@ export default function LOBGame() {
                 <div className={`p-3 rounded-lg border-2 text-center ${buf2Ok ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'}`}><div className="font-bold text-sm">{buf2Ok ? '✅' : '❌'} Pipe → Back</div><div className="text-xs mt-1">{buf2} days{buf2Ok ? ' ✓' : ` (need ${DEFAULT_BUFFER})`}</div></div>
               </div>
             )}
-
             <div className="mt-4">
-              <h4 className="font-bold text-sm mb-2">R2 Schedule (auto-updated from chart):</h4>
+              <h4 className="font-bold text-sm mb-2">R2 Schedule:</h4>
               <table className="w-full text-sm border">
                 <thead className="bg-gray-100"><tr><th className="px-2 py-2 border text-left">Activity</th><th className="px-2 py-2 border text-center">Production Rate (ft/day)</th><th className="px-2 py-2 border text-center">Duration (days)</th><th className="px-2 py-2 border text-center">Start</th><th className="px-2 py-2 border text-center">End</th></tr></thead>
                 <tbody>
@@ -887,24 +764,9 @@ export default function LOBGame() {
               </table>
               <div className="mt-3 p-3 bg-blue-50 rounded text-center"><span className="text-gray-600">Project Duration:</span><span className="ml-2 text-xl font-bold text-blue-600">{r2Student.end} days</span></div>
             </div>
-
-            {allGreen && (<>
-              <div className="mt-4 bg-green-50 border-2 border-green-400 rounded-lg p-4">
-                <h4 className="font-bold text-green-800 mb-2">💡 Key Insight</h4>
-                <ul className="text-sm text-green-700 space-y-1">
-                  <li>• {DEFAULT_BUFFER}-day buffer keeps LOB lines parallel</li>
-                  <li>• Pipe Laying (slowest at {CREWS.pipe.rate} ft/day) controls the project duration</li>
-                  <li>• Backfill (fastest at {CREWS.back.rate} ft/day) must wait to avoid catching up</li>
-                </ul>
-                <div className="mt-3 pt-2 border-t border-green-300 text-sm text-green-600">👉 Round 3: See how buffer size affects duration.</div>
-              </div>
-              <div className="mt-3 p-3 bg-green-100 text-green-700 rounded">✅ Correct! All criteria met.</div>
-            </>)}
+            {allGreen && (<><div className="mt-4 bg-green-50 border-2 border-green-400 rounded-lg p-4"><h4 className="font-bold text-green-800 mb-2">💡 Key Insight</h4><ul className="text-sm text-green-700 space-y-1"><li>• {DEFAULT_BUFFER}-day buffer keeps LOB lines parallel</li><li>• Pipe Laying (slowest at {CREWS.pipe.rate} ft/day) controls duration</li><li>• Backfill (fastest at {CREWS.back.rate} ft/day) must wait</li></ul></div><div className="mt-3 p-3 bg-green-100 text-green-700 rounded">✅ Correct! All criteria met.</div></>)}
           </div>
-
-          {allGreen && (<>
-            <div className="bg-white rounded-lg shadow p-4"><h3 className="font-bold mb-2">💰 Budget (Auto-Calculated)</h3><BudgetTable cost={r2Cost} durExc={dur.exc} durPipe={dur.pipe} durBack={dur.back} costExc={CREWS.exc.cost} costPipe={CREWS.pipe.cost} costBack={CREWS.back.cost} /></div>
-          </>)}
+          {allGreen && <div className="bg-white rounded-lg shadow p-4"><h3 className="font-bold mb-2">💰 Budget</h3><BudgetTable cost={r2Cost} durExc={dur.exc} durPipe={dur.pipe} durBack={dur.back} costExc={CREWS.exc.cost} costPipe={CREWS.pipe.cost} costBack={CREWS.back.cost} /></div>}
           <div className="flex gap-3">
             <button onClick={goBack} className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300">← Back to R1</button>
             {allGreen && <button onClick={nextRound} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700">Complete R2 → R3</button>}
@@ -912,16 +774,10 @@ export default function LOBGame() {
           </>);
         })()}
 
-        {/* R3: Buffer Analysis (round === 3) */}
+        {/* R3: Buffer Analysis */}
         {round === 3 && (<>
-          <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
-            <h3 className="font-bold text-lg">📋 R3: Buffer Analysis</h3>
-            <p className="text-sm text-gray-700 mt-2">Adjust the buffer slider and observe:</p>
-            <ul className="text-sm text-gray-700 mt-1 ml-4 list-disc"><li>How does the <strong>project duration</strong> change?</li><li>Does the <strong>total cost</strong> change?</li></ul>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center gap-4"><span className="font-bold">Buffer:</span><input type="range" min="1" max="15" value={r3Buffer} onChange={e => { const v = +e.target.value; setR3Buffer(v); }} className="flex-1" /><span className="text-3xl font-bold text-green-600 w-16 text-center">{r3Buffer}</span><span>days</span></div>
-          </div>
+          <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded"><h3 className="font-bold text-lg">📋 R3: Buffer Analysis</h3><p className="text-sm text-gray-700 mt-2">Adjust the buffer slider and observe how project duration and cost change.</p></div>
+          <div className="bg-white rounded-lg shadow p-4"><div className="flex items-center gap-4"><span className="font-bold">Buffer:</span><input type="range" min="1" max="15" value={r3Buffer} onChange={e => setR3Buffer(+e.target.value)} className="flex-1" /><span className="text-3xl font-bold text-green-600 w-16 text-center">{r3Buffer}</span><span>days</span></div></div>
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-2">Schedule (Buffer = {r3Buffer} days)</h3>
             <table className="w-full text-sm border">
@@ -940,22 +796,16 @@ export default function LOBGame() {
             <ResponsiveContainer width="100%" height={280}><LineChart data={genLOB([r2Correct, r3])} margin={{ top: 10, right: 30, bottom: 30, left: 60 }}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="day" label={{ value: 'Duration (day)', position: 'insideBottom', offset: -5 }} /><YAxis domain={[0, PROJECT_LENGTH]} tickFormatter={v => (v/1000).toFixed(0)+'k'} label={{ value: 'Distance (ft)', angle: -90, position: 'insideLeft', offset: 10 }} /><Tooltip /><Legend verticalAlign="top" height={36} /><Line type="linear" dataKey="exc0" stroke="#2563eb" strokeWidth={1} strokeDasharray="5 5" name="Exc R2" dot={false} /><Line type="linear" dataKey="pipe0" stroke="#16a34a" strokeWidth={1} strokeDasharray="5 5" name="Pipe R2" dot={false} /><Line type="linear" dataKey="back0" stroke="#ea580c" strokeWidth={1} strokeDasharray="5 5" name="Back R2" dot={false} /><Line type="linear" dataKey="exc1" stroke="#2563eb" strokeWidth={3} name="Exc R3" dot={false} /><Line type="linear" dataKey="pipe1" stroke="#16a34a" strokeWidth={3} name="Pipe R3" dot={false} /><Line type="linear" dataKey="back1" stroke="#ea580c" strokeWidth={3} name="Back R3" dot={false} /></LineChart></ResponsiveContainer>
           </div>
           <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded"><h4 className="font-bold text-yellow-800">💡 Key Insight</h4><div className="mt-2 text-sm text-yellow-900 space-y-1"><p>Buffer ↑ → Duration ↑</p><p>Buffer ↑ → Cost stays the <strong>SAME</strong></p></div><p className="mt-3 text-sm text-yellow-800">Why? Buffer only shifts <em>when</em> crews work, not <em>how long</em> they work.</p></div>
-          <div className="flex gap-3">
-            <button onClick={goBack} className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300">← Back to R2</button>
-            <button onClick={nextRound} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold">Complete R3 → R4</button>
-          </div>
+          <div className="flex gap-3"><button onClick={goBack} className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300">← Back to R2</button><button onClick={nextRound} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold">Complete R3 → R4</button></div>
         </>)}
 
-        {/* R4: Rate Analysis (round === 4) */}
+        {/* R4: Rate Analysis */}
         {round === 4 && (<>
-          <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded">
-            <h3 className="font-bold text-lg">📋 R4: Rate Analysis</h3>
-            <p className="text-sm text-gray-700 mt-2">Select different equipment for each crew and observe how rate affects duration and cost.</p>
-          </div>
+          <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded"><h3 className="font-bold text-lg">📋 R4: Rate Analysis</h3><p className="text-sm text-gray-700 mt-2">Select different equipment and observe how rate affects duration and cost.</p></div>
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-3">Equipment Selection</h3>
             <div className="grid grid-cols-3 gap-4">
-              {['exc', 'pipe', 'back'].map((type) => (<div key={type} className="border rounded p-3"><h4 className={`font-bold mb-2 ${type === 'exc' ? 'text-blue-700' : type === 'pipe' ? 'text-green-700' : 'text-orange-700'}`}>{type === 'exc' ? 'Excavation & Bedding' : type === 'pipe' ? 'Pipe Laying & Alignment' : 'Backfill & Compaction'}</h4>{EQUIPMENT[type].map((eq, i) => (<label key={i} className={`block p-2 rounded mb-1 cursor-pointer ${r4Eq[type] === i ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-50'}`}><input type="radio" checked={r4Eq[type] === i} onChange={() => { setR4Eq(p => ({...p, [type]: i})); }} className="mr-2" />{eq.name}<div className="text-xs text-gray-500 ml-5">{eq.rate} ft/day | ${eq.cost}/day</div></label>))}</div>))}
+              {['exc', 'pipe', 'back'].map((type) => (<div key={type} className="border rounded p-3"><h4 className={`font-bold mb-2 ${type === 'exc' ? 'text-blue-700' : type === 'pipe' ? 'text-green-700' : 'text-orange-700'}`}>{type === 'exc' ? 'Excavation & Bedding' : type === 'pipe' ? 'Pipe Laying & Alignment' : 'Backfill & Compaction'}</h4>{EQUIPMENT[type].map((eq, i) => (<label key={i} className={`block p-2 rounded mb-1 cursor-pointer ${r4Eq[type] === i ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-50'}`}><input type="radio" checked={r4Eq[type] === i} onChange={() => setR4Eq(p => ({...p, [type]: i}))} className="mr-2" />{eq.name}<div className="text-xs text-gray-500 ml-5">{eq.rate} ft/day | ${eq.cost}/day</div></label>))}</div>))}
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
@@ -976,25 +826,19 @@ export default function LOBGame() {
             <ResponsiveContainer width="100%" height={280}><LineChart data={genLOB([r2Correct, r4])} margin={{ top: 10, right: 30, bottom: 30, left: 60 }}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="day" label={{ value: 'Duration (day)', position: 'insideBottom', offset: -5 }} /><YAxis domain={[0, PROJECT_LENGTH]} tickFormatter={v => (v/1000).toFixed(0)+'k'} label={{ value: 'Distance (ft)', angle: -90, position: 'insideLeft', offset: 10 }} /><Tooltip /><Legend verticalAlign="top" height={36} /><Line type="linear" dataKey="exc0" stroke="#2563eb" strokeWidth={1} strokeDasharray="5 5" name="Exc R2" dot={false} /><Line type="linear" dataKey="pipe0" stroke="#16a34a" strokeWidth={1} strokeDasharray="5 5" name="Pipe R2" dot={false} /><Line type="linear" dataKey="back0" stroke="#ea580c" strokeWidth={1} strokeDasharray="5 5" name="Back R2" dot={false} /><Line type="linear" dataKey="exc1" stroke="#2563eb" strokeWidth={3} name="Exc R4" dot={false} /><Line type="linear" dataKey="pipe1" stroke="#16a34a" strokeWidth={3} name="Pipe R4" dot={false} /><Line type="linear" dataKey="back1" stroke="#ea580c" strokeWidth={3} name="Back R4" dot={false} /></LineChart></ResponsiveContainer>
           </div>
           <div className="bg-white rounded-lg shadow p-4"><h3 className="font-bold mb-2">💰 R4 Budget</h3><BudgetTable cost={r4Cost} durExc={r4.excDur} durPipe={r4.pipeDur} durBack={r4.backDur} costExc={r4.excCost} costPipe={r4.pipeCost} costBack={r4.backCost} /></div>
-          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded"><h4 className="font-bold text-yellow-800">💡 Key Insight</h4><div className="mt-2 text-sm text-yellow-900 space-y-1"><p>Rate ↑ → Duration ↓</p><p>Rate ↑ → Cost may ↑ or ↓</p></div><p className="mt-3 text-sm text-yellow-800"><strong>The cheapest option is not always the slowest!</strong></p></div>
-          <div className="flex gap-3">
-            <button onClick={goBack} className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300">← Back to R3</button>
-            <button onClick={nextRound} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold">Complete R4 → R5</button>
-          </div>
+          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded"><h4 className="font-bold text-yellow-800">💡 Key Insight</h4><div className="mt-2 text-sm text-yellow-900 space-y-1"><p>Rate ↑ → Duration may ↑ or stay the same</p><p>Rate ↑ → Cost may ↑ or ↓</p></div><p className="mt-3 text-sm text-yellow-800"><strong>The cheapest option is not always the slowest!</strong></p></div>
+          <div className="flex gap-3"><button onClick={goBack} className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300">← Back to R3</button><button onClick={nextRound} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold">Complete R4 → R5</button></div>
         </>)}
 
-        {/* R5: Optimization (round === 5) */}
+        {/* R5 */}
         {round === 5 && (<>
-          <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded">
-            <h3 className="font-bold text-lg">📋 R5: Optimization Challenge</h3>
-            <p className="text-sm text-gray-700 mt-2">Meet <strong>BOTH</strong> constraints: Duration ≤{TARGET_DAYS} days, Cost ≤${TARGET_COST.toLocaleString()}</p>
-          </div>
+          <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded"><h3 className="font-bold text-lg">📋 R5: Optimization Challenge</h3><p className="text-sm text-gray-700 mt-2">Meet <strong>BOTH</strong> constraints: Duration ≤{TARGET_DAYS} days, Cost ≤${TARGET_COST.toLocaleString()}</p></div>
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-3">Equipment Configuration (Multiple Units)</h3>
             <div className="grid grid-cols-3 gap-4">
-              {['exc', 'pipe', 'back'].map((type) => (<div key={type} className={`border rounded p-3 ${type === 'exc' ? 'bg-blue-50' : type === 'pipe' ? 'bg-green-50' : 'bg-orange-50'}`}><h4 className={`font-bold mb-2 ${type === 'exc' ? 'text-blue-700' : type === 'pipe' ? 'text-green-700' : 'text-orange-700'}`}>{type === 'exc' ? 'Excavation & Bedding' : type === 'pipe' ? 'Pipe Laying & Alignment' : 'Backfill & Compaction'}</h4>{Object.keys(r5Config[type]).map((key) => { const eq = EQUIPMENT[type][type === 'pipe' ? (key === 'standard' ? 0 : 1) : (key === 'small' ? 0 : key === 'standard' ? 1 : 2)]; return (<div key={key} className="flex items-center justify-between bg-white p-2 rounded mb-1"><div className="text-sm">{eq.name}<div className="text-xs text-gray-500">{eq.rate} ft/d | ${eq.cost}/d</div></div><div className="flex items-center gap-1"><button onClick={() => { const v = Math.max(0, r5Config[type][key] - 1); setR5Config(p => ({...p, [type]: {...p[type], [key]: v}})); }} className="w-6 h-6 bg-gray-200 rounded font-bold">-</button><span className="w-6 text-center font-bold">{r5Config[type][key]}</span><button onClick={() => { const v = r5Config[type][key] + 1; setR5Config(p => ({...p, [type]: {...p[type], [key]: v}})); }} className="w-6 h-6 bg-blue-200 rounded font-bold">+</button></div></div>); })}</div>))}
+              {['exc', 'pipe', 'back'].map((type) => (<div key={type} className={`border rounded p-3 ${type === 'exc' ? 'bg-blue-50' : type === 'pipe' ? 'bg-green-50' : 'bg-orange-50'}`}><h4 className={`font-bold mb-2 ${type === 'exc' ? 'text-blue-700' : type === 'pipe' ? 'text-green-700' : 'text-orange-700'}`}>{type === 'exc' ? 'Excavation & Bedding' : type === 'pipe' ? 'Pipe Laying & Alignment' : 'Backfill & Compaction'}</h4>{Object.keys(r5Config[type]).map((key) => { const eq = EQUIPMENT[type][type === 'pipe' ? (key === 'standard' ? 0 : 1) : (key === 'small' ? 0 : key === 'standard' ? 1 : 2)]; return (<div key={key} className="flex items-center justify-between bg-white p-2 rounded mb-1"><div className="text-sm">{eq.name}<div className="text-xs text-gray-500">{eq.rate} ft/d | ${eq.cost}/d</div></div><div className="flex items-center gap-1"><button onClick={() => setR5Config(p => ({...p, [type]: {...p[type], [key]: Math.max(0, p[type][key] - 1)}}))} className="w-6 h-6 bg-gray-200 rounded font-bold">-</button><span className="w-6 text-center font-bold">{r5Config[type][key]}</span><button onClick={() => setR5Config(p => ({...p, [type]: {...p[type], [key]: p[type][key] + 1}}))} className="w-6 h-6 bg-blue-200 rounded font-bold">+</button></div></div>); })}</div>))}
             </div>
-            <div className="mt-4 p-3 bg-purple-50 rounded flex items-center gap-4"><span className="font-bold">Buffer:</span><input type="range" min="1" max="10" value={r5Buffer} onChange={e => { const v = +e.target.value; setR5Buffer(v); }} className="flex-1" /><span className="text-2xl font-bold text-purple-600 w-12">{r5Buffer}</span></div>
+            <div className="mt-4 p-3 bg-purple-50 rounded flex items-center gap-4"><span className="font-bold">Buffer:</span><input type="range" min="1" max="10" value={r5Buffer} onChange={e => setR5Buffer(+e.target.value)} className="flex-1" /><span className="text-2xl font-bold text-purple-600 w-12">{r5Buffer}</span></div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold mb-2">R5 Schedule</h3>
@@ -1022,11 +866,9 @@ export default function LOBGame() {
           </div>
           <div className="bg-white rounded-lg shadow p-4"><h3 className="font-bold mb-2">💰 R5 Budget</h3><BudgetTable cost={r5Cost} durExc={r5.excDur} durPipe={r5.pipeDur} durBack={r5.backDur} costExc={r5.excCost} costPipe={r5.pipeCost} costBack={r5.backCost} /></div>
           <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded"><h4 className="font-bold text-yellow-800">💡 Key Insight</h4><p className="text-sm text-yellow-900 mt-2">More equipment → Faster but costs more. Smaller buffer → Faster but riskier. <strong>Find the balance!</strong></p></div>
-          <div className="flex gap-3">
-            <button onClick={goBack} className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300">← Back to R4</button>
-            <button onClick={nextRound} className="flex-1 bg-purple-600 text-white py-3 rounded-lg font-bold">Finish Game 🏆</button>
-          </div>
+          <div className="flex gap-3"><button onClick={goBack} className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300">← Back to R4</button><button onClick={nextRound} className="flex-1 bg-purple-600 text-white py-3 rounded-lg font-bold">Finish Game 🏆</button></div>
         </>)}
+
       </div>
     </div>
   );
