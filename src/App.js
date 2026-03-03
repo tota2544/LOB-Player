@@ -446,12 +446,19 @@ export default function LOBGame() {
   const [r2Schedule, setR2Schedule] = useState(null);
   const [r2Validated, setR2Validated] = useState(false);
   const [r2FlashCards, setR2FlashCards] = useState({ whyProblem: false, whyMatter: false, whatIsLOB: false, howToFix: false, assumptions: false, howToRevise: false });
+  const [r2SourceR1, setR2SourceR1] = useState(null); // tracks which R1 schedule was used to init R2
 
   useEffect(() => {
-    if (round === 2 && !r2Schedule && r1Schedule) {
-      setR2Schedule({ excS: r1Schedule.excS, pipeS: r1Schedule.pipeS, backS: r1Schedule.backS });
+    if (round === 2 && r1Schedule) {
+      // Reset R2 solid lines whenever R1 schedule has changed since last init
+      const r1Key = `${r1Schedule.excS}-${r1Schedule.pipeS}-${r1Schedule.backS}`;
+      if (r2SourceR1 !== r1Key) {
+        setR2Schedule({ excS: r1Schedule.excS, pipeS: r1Schedule.pipeS, backS: r1Schedule.backS });
+        setR2SourceR1(r1Key);
+        setR2Validated(false);
+      }
     }
-  }, [round, r2Schedule, r1Schedule]);
+  }, [round, r1Schedule, r2SourceR1]);
 
   const [r3Buffer, setR3Buffer] = useState(5);
   const [r4Eq, setR4Eq] = useState({ exc: 1, pipe: 0, back: 1 });
